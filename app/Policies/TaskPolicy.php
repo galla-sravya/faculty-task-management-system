@@ -21,33 +21,73 @@ class TaskPolicy
         if ($user->isHod()) {
             return $user->department_id === $task->department_id;
         }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id || $task->assignees()->where('user_id', $user->id)->exists();
+        }
         
         return $task->assignees()->where('user_id', $user->id)->exists();
     }
 
     public function create(User $user): bool
     {
-        return $user->isHod();
+        return $user->isHod() || $user->isNbaCoordinator();
     }
 
     public function update(User $user, Task $task): bool
     {
-        return $user->isHod() && $user->department_id === $task->department_id;
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function delete(User $user, Task $task): bool
     {
-        return $user->isHod() && $user->department_id === $task->department_id;
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function restore(User $user, Task $task): bool
     {
-        return $user->isHod() && $user->department_id === $task->department_id;
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function forceDelete(User $user, Task $task): bool
     {
-        return $user->isHod() && $user->department_id === $task->department_id;
+        if ($task->overall_progress > 0 || $task->documents()->exists() || $task->activities()->count() > 1 || $task->comments()->exists()) {
+            return false;
+        }
+
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
     
     public function updateProgress(User $user, Task $task): bool
@@ -60,21 +100,42 @@ class TaskPolicy
         if ($user->isHod()) {
             return $user->department_id === $task->department_id;
         }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
         return $task->assignees()->where('user_id', $user->id)->exists();
     }
 
     public function removeCollaborator(User $user, Task $task): bool
     {
-        return $user->isHod() && $user->department_id === $task->department_id;
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function uploadDocument(User $user, Task $task): bool
     {
-        return $task->assignees()->where('user_id', $user->id)->exists();
+        return $task->assignees()->where('user_id', $user->id)->exists() || $task->created_by === $user->id;
     }
 
     public function reviewDocument(User $user, Task $task): bool
     {
-        return $user->isHod() && $user->department_id === $task->department_id;
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 }

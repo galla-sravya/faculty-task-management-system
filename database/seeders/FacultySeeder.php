@@ -6,7 +6,6 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Department;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 
 class FacultySeeder extends Seeder
@@ -23,6 +22,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. B. Gomathy',
                 'designation' => 'Professor & HOD (i/c)',
                 'email' => 'drgomathy@psgitech.ac.in',
+                'password' => 'bgomathy227',
                 'specialization' => 'Data Analytics',
                 'profile_photo_path' => 'faculty/gomathy_b.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?hl=en&user=sUGFFQsAAAAJ',
@@ -33,6 +33,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. R. Manimegalai',
                 'designation' => 'Professor',
                 'email' => 'drrm@psgitech.ac.in',
+                'password' => 'rmanimegalai480',
                 'specialization' => 'Distributed Computing VLSI Algorithms, IoT and Security',
                 'profile_photo_path' => 'faculty/1707802019_manimegalai.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=X0WcdY8AAAAJ&hl=en',
@@ -43,6 +44,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. S. Kalarani',
                 'designation' => 'Professor',
                 'email' => 'kalarani@psgitech.ac.in',
+                'password' => 'skalarani192',
                 'specialization' => 'Cloud Computing, Deep Learning',
                 'profile_photo_path' => 'faculty/kalarani1.jpg',
                 'google_scholar' => 'https://scholar.google.co.in/citations?user=JUzxGPEAAAAJ&hl=en',
@@ -53,6 +55,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. R. Manjula Devi',
                 'designation' => 'Professor',
                 'email' => 'manjuladevi.cs@psgitech.ac.in',
+                'password' => 'rmanjuladevi282',
                 'specialization' => 'Machine Learning, Image Processing, Soft Computing, AI',
                 'profile_photo_path' => 'faculty/Manjula_cse.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=_u5Z9qcAAAAJ',
@@ -63,6 +66,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Mr. V. Harikrishnan',
                 'designation' => 'Professor of Practice',
                 'email' => 'harikrishnan.cs@psgitech.ac.in',
+                'password' => 'vharikrishnan117',
                 'specialization' => 'Project Management, ERP',
                 'profile_photo_path' => 'faculty/Harikrishna.jpg',
                 'google_scholar' => null,
@@ -73,6 +77,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. I. Kala',
                 'designation' => 'Associate Professor',
                 'email' => 'kala@psgitech.ac.in',
+                'password' => 'ikala575',
                 'specialization' => 'Mobile AdHoc Network and Database Management System',
                 'profile_photo_path' => 'faculty/1707802253_kala.jpg',
                 'google_scholar' => 'https://scholar.google.co.in/citations?hl=en&user=b_lma8IAAAAJ&view_op=list_works&authuser=1',
@@ -81,8 +86,10 @@ class FacultySeeder extends Seeder
             ],
             [
                 'name' => 'Dr. K. Malarvizhi',
-                'designation' => 'Assistant Professor (Selection Grade)',
+                'designation' => 'Assistant Professor (Selection Grade) & NBA Coordinator',
                 'email' => 'malarvizhi@psgitech.ac.in',
+                'password' => 'kmalarvizhi424',
+                'role' => 'nba_coordinator',
                 'specialization' => 'Machine Learning, Deep Learning',
                 'profile_photo_path' => 'faculty/Malar_AI.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?view_op=list_works&hl=en&hl=en&user=nvqr_JUAAAAJ',
@@ -93,6 +100,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. T. Kalai Selvi',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'tks.cs@psgitech.ac.in',
+                'password' => 'tkalaiselvi959',
                 'specialization' => 'Internet of Things (IoT), Data Management',
                 'profile_photo_path' => 'faculty/Kalai_cse.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=6HKPEYEAAAAJ&hl=en',
@@ -100,9 +108,10 @@ class FacultySeeder extends Seeder
                 'google_site' => null,
             ],
             [
-                'name' => 'Dr. M. N. Kavitha',
+                'name' => 'Dr. M.N. Kavitha',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'kavitha@psgitech.ac.in',
+                'password' => 'mnkavitha847',
                 'specialization' => 'Machine Learning, Deep Learning & Operating System',
                 'profile_photo_path' => 'faculty/kavitha.jpg',
                 'google_scholar' => null,
@@ -113,6 +122,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. A. Sunitha Nandhini',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'asn@psgitech.ac.in',
+                'password' => 'asunithanandhini854',
                 'specialization' => 'Artifical Intelligence, Internet of Things',
                 'profile_photo_path' => 'faculty/1707802666_sunitha.jpg',
                 'google_scholar' => 'https://scholar.google.co.in/citations?hl=en&user=aJq4onoAAAAJ',
@@ -123,6 +133,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. M. Kirubadevi',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'kirubadevi@psgitech.ac.in',
+                'password' => 'mkirubadevi109',
                 'specialization' => 'Software Engineering',
                 'profile_photo_path' => 'faculty/Kirubadevi.jpg',
                 'google_scholar' => null,
@@ -133,6 +144,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. M. Sangeetha',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'sangeetha.cs@psgitech.ac.in',
+                'password' => 'msangeetha230',
                 'specialization' => 'Deep Learning, Graph Neural Networks',
                 'profile_photo_path' => 'faculty/sangeetha_cse.jpg',
                 'google_scholar' => null,
@@ -143,6 +155,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. M. Karthigha',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'karthigha@psgitech.ac.in',
+                'password' => 'mkarthigha386',
                 'specialization' => 'Network Security, Augmented Reality & Virtual Reality',
                 'profile_photo_path' => 'faculty/1707802886_kar.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=abJqF8sAAAAJ&hl=en&authuser=1',
@@ -153,6 +166,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. P. Jeevitha',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'jeevithap@psgitech.ac.in',
+                'password' => 'pjeevitha548',
                 'specialization' => 'Machine Learning',
                 'profile_photo_path' => 'faculty/Jeevitha.jpg',
                 'google_scholar' => null,
@@ -160,9 +174,10 @@ class FacultySeeder extends Seeder
                 'google_site' => null,
             ],
             [
-                'name' => 'Ms. S. S. Saranya',
+                'name' => 'Ms. S.S. Saranya',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'saranya@psgitech.ac.in',
+                'password' => 'sssaranya621',
                 'specialization' => 'Security, Blockchain',
                 'profile_photo_path' => 'faculty/Saranya.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?hl=en&user=_JLd83UAAAAJ',
@@ -173,6 +188,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. Sathya Balaji',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'sathyabalaji@psgitech.ac.in',
+                'password' => 'sathyabalaji694',
                 'specialization' => 'Machine Learning, Artificial Intelligence',
                 'profile_photo_path' => 'faculty/Sathya_Balaji.jpg',
                 'google_scholar' => null,
@@ -183,6 +199,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. P. Shanmugapriya',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'shanmugapriya@psgitech.ac.in',
+                'password' => 'pshanmugapriya248',
                 'specialization' => 'DBMS, Machine Learning , Deep Learning',
                 'profile_photo_path' => 'faculty/Shanmugapriya.jpg',
                 'google_scholar' => null,
@@ -193,6 +210,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Lt. V. Vilasini',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'vilasini@psgitech.ac.in',
+                'password' => 'vvilasini684',
                 'specialization' => 'Data Science and Data Analytics',
                 'profile_photo_path' => 'faculty/1707803189_vilasini.jpg',
                 'google_scholar' => null,
@@ -203,6 +221,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. S. Vaishnavi',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'vaishnavis@psgitech.ac.in',
+                'password' => 'svaishnavi304',
                 'specialization' => 'Data Science, Machine Learning',
                 'profile_photo_path' => 'faculty/1707803002_vaishnavi.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=6rNmGx4AAAAJ&hl=en',
@@ -213,6 +232,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. V. C. Maha Vishnu',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'mvvc@psgitech.ac.in',
+                'password' => 'vcmahavishnu842',
                 'specialization' => 'Video Data Mining and Image Analytics',
                 'profile_photo_path' => 'faculty/1707803114_mahavishnu.jpg',
                 'google_scholar' => 'https://scholar.google.co.in/citations?hl=en&user=QMfnpm0AAAAJ&view_op=list_works&sortby=pubdate',
@@ -223,6 +243,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. P. Gouthami',
                 'designation' => 'Assistant Professor (Senior Grade)',
                 'email' => 'gouthami.cs@psgitech.ac.in',
+                'password' => 'pgouthami660',
                 'specialization' => 'Machine Learning, Deep Learning',
                 'profile_photo_path' => 'faculty/gouthami_cse.jpg',
                 'google_scholar' => null,
@@ -233,6 +254,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. S. Leela',
                 'designation' => 'Assistant Professor (Senior Grade)',
                 'email' => 'leela.cs@psgitech.ac.in',
+                'password' => 'sleela166',
                 'specialization' => 'Deep Learning',
                 'profile_photo_path' => 'faculty/Leela_cse.jpg',
                 'google_scholar' => null,
@@ -243,6 +265,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Mr. B. Ajith Jerom',
                 'designation' => 'Assistant Professor',
                 'email' => 'ajith@psgitech.ac.in',
+                'password' => 'bajithjerom624',
                 'specialization' => 'Data Science and Data Analytics',
                 'profile_photo_path' => 'faculty/ajith_cse.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=0_-ed7YAAAAJ&hl=en',
@@ -253,6 +276,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. C. Divya Gowri',
                 'designation' => 'Assistant Professor',
                 'email' => 'divya.cs@psgitech.ac.in',
+                'password' => 'cdivyagowri241',
                 'specialization' => 'Data Mining, Database Management System',
                 'profile_photo_path' => 'faculty/divya_gowri.jpg',
                 'google_scholar' => null,
@@ -263,6 +287,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. S. V. Sowthika',
                 'designation' => 'Assistant Professor',
                 'email' => 'sowthika.cs@psgitech.ac.in',
+                'password' => 'svsowthika878',
                 'specialization' => 'Machine Learning, DBMS',
                 'profile_photo_path' => 'faculty/sowthika.jpg',
                 'google_scholar' => null,
@@ -273,6 +298,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Ms. R. Hemapriya',
                 'designation' => 'Assistant Professor',
                 'email' => 'hemapriya.cs@psgitech.ac.in',
+                'password' => 'rhemapriya633',
                 'specialization' => 'DBMS, Machine Learning',
                 'profile_photo_path' => 'faculty/Hemapriya.jpg',
                 'google_scholar' => null,
@@ -280,9 +306,10 @@ class FacultySeeder extends Seeder
                 'google_site' => null,
             ],
             [
-                'name' => 'Dr. B. Gomathi',
+                'name' => 'Dr. B. Gomathi (CS&BS)',
                 'designation' => 'Associate Professor',
                 'email' => 'gomathi@psgitech.ac.in',
+                'password' => 'bgomathicsbs208',
                 'specialization' => 'Cloud Computing, Machine Learning, Optimization Techniques',
                 'profile_photo_path' => 'faculty/1707802340_gomathi.jpg',
                 'google_scholar' => 'https://scholar.google.com/citations?user=QYmbpmoAAAAJ&hl=en&authuser=1',
@@ -293,6 +320,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Dr. P. Anantha Prabha',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'ap@psgitech.ac.in',
+                'password' => 'pananthaprabha467',
                 'specialization' => 'Deep Learning, Cloud Computing',
                 'profile_photo_path' => 'faculty/Anantha_Prabha.jpg',
                 'google_scholar' => 'https://scholar.google.co.in/citations?user=yTeXBtwAAAAJ&hl=en',
@@ -303,6 +331,7 @@ class FacultySeeder extends Seeder
                 'name' => 'Mr. K. S. Giriprasath',
                 'designation' => 'Assistant Professor (Selection Grade)',
                 'email' => 'giriprasath@psgitech.ac.in',
+                'password' => 'ksgiriprasath109',
                 'specialization' => 'Cyber security, Network Security',
                 'profile_photo_path' => 'faculty/giri.jpg',
                 'google_scholar' => null,
@@ -314,17 +343,13 @@ class FacultySeeder extends Seeder
         $credentials = [];
 
         foreach ($faculties as $faculty) {
-            // Generate clean password
-            $cleanName = str_replace(['Dr.', 'Mr.', 'Ms.', 'Lt.', ' ', '.', '(', ')', '&'], '', $faculty['name']);
-            $passwordText = 'password'; // Standardized password for demo consistency
-            
-            $role = str_contains(strtolower($faculty['designation']), 'hod') ? 'hod' : 'faculty';
+            $role = $faculty['role'] ?? (str_contains(strtolower($faculty['designation']), 'hod') ? 'hod' : 'faculty');
             
             $user = User::updateOrCreate(
                 ['email' => $faculty['email']],
                 [
                     'name' => $faculty['name'],
-                    'password' => Hash::make($passwordText),
+                    'password' => Hash::make($faculty['password']),
                     'role' => $role,
                     'department_id' => $department ? $department->id : 1,
                     'designation' => $faculty['designation'],
@@ -345,17 +370,17 @@ class FacultySeeder extends Seeder
             $credentials[] = [
                 'name' => $faculty['name'],
                 'email' => $faculty['email'],
-                'password' => $passwordText,
+                'password' => $faculty['password'],
                 'role' => $role,
             ];
         }
 
-        // Also ensure default hod@college.edu account exists for seamless demo login
+        // Also ensure default hod@college.edu account exists with HOD role
         User::updateOrCreate(
             ['email' => 'hod@college.edu'],
             [
                 'name' => 'Dr. B. Gomathy (HOD)',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('bgomathy227'),
                 'role' => 'hod',
                 'department_id' => $department ? $department->id : 1,
                 'designation' => 'Professor & HOD (i/c)',

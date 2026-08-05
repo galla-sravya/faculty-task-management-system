@@ -4,13 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\TaskAssignment;
-use App\Models\TaskActivity;
-use App\Models\NotificationLog;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class TaskCollaboratorController extends Controller
 {
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Add one or more collaborators to a task.
      */
@@ -28,7 +34,6 @@ class TaskCollaboratorController extends Controller
 
         $role = $validated['role'];
         $reason = $validated['reason'] ?? null;
-        $notifyHod = $request->boolean('notify_hod', false);
 
         $currentAssigneeIds = $task->assignees->pluck('id')->toArray();
         $added = [];
@@ -64,47 +69,8 @@ class TaskCollaboratorController extends Controller
             $faculty = User::find($facultyId);
             $added[] = $faculty->name;
 
-            // Activity log
-            TaskActivity::create([
-                'task_id'     => $task->id,
-                'user_id'     => auth()->id(),
-                'action'      => 'collaborator_added',
-                'description' => auth()->user()->name . " added {$faculty->name} as " . str_replace('_', ' ', $role) . "." . ($reason ? " Reason: {$reason}" : ''),
-            ]);
-
-            // Notify the newly assigned faculty
-            NotificationLog::create([
-                'user_id'        => $facultyId,
-                'type'           => 'collaborator_added',
-                'reference_id'   => $task->id,
-                'reference_type' => Task::class,
-                'message'        => 'You have been added as a ' . str_replace('_', ' ', $role) . ' on task: ' . $task->title,
-                'sent_at'        => now(),
-            ]);
-        }
-
-        // Automatically notify the HOD who created/assigned the task (if current user is not that HOD)
-        if (!empty($added) && !auth()->user()->isHod()) {
-            $hod = ($task->creator && $task->creator->isHod())
-                ? $task->creator
-                : User::where('department_id', $task->department_id)->where('role', 'hod')->first();
-
-            if ($hod && $hod->id !== auth()->id()) {
-                $collaboratorsList = implode(', ', $added);
-                $roleLabel = str_replace('_', ' ', $role);
-                $performerName = auth()->user()->name;
-
-                $message = "{$performerName} added {$collaboratorsList} as a {$roleLabel} for \"{$task->title}\"";
-
-                NotificationLog::create([
-                    'user_id'        => $hod->id,
-                    'type'           => 'collaborator_added',
-                    'reference_id'   => $task->id,
-                    'reference_type' => Task::class,
-                    'message'        => $message,
-                    'sent_at'        => now(),
-                ]);
-            }
+            // Centralized notification & activity logging
+            $this->notificationService->notifyCollaboratorAdded($task, $faculty);
         }
 
         if (empty($added)) {
@@ -129,21 +95,8 @@ class TaskCollaboratorController extends Controller
         $task->assignees()->detach($user->id);
         TaskAssignment::where('task_id', $task->id)->where('faculty_id', $user->id)->delete();
 
-        TaskActivity::create([
-            'task_id'     => $task->id,
-            'user_id'     => auth()->id(),
-            'action'      => 'collaborator_removed',
-            'description' => auth()->user()->name . " removed {$user->name} from the task.",
-        ]);
-
-        NotificationLog::create([
-            'user_id'        => $user->id,
-            'type'           => 'collaborator_removed',
-            'reference_id'   => $task->id,
-            'reference_type' => Task::class,
-            'message'        => 'You have been removed from task: ' . $task->title,
-            'sent_at'        => now(),
-        ]);
+        // Centralized notification & activity logging
+        $this->notificationService->notifyCollaboratorRemoved($task, $user);
 
         return back()->with('success', "{$user->name} removed from this task.");
     }

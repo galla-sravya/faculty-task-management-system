@@ -5,13 +5,18 @@ namespace App\Http\Controllers\HOD;
 use App\Http\Controllers\Controller;
 use App\Models\Meeting;
 use App\Models\User;
-use App\Models\NotificationLog;
-use App\Models\Task;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class MeetingController extends Controller
 {
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     public function index()
     {
         $meetings = Meeting::where('department_id', auth()->user()->department_id)
@@ -33,38 +38,30 @@ class MeetingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'title'        => 'required|string|max:255',
+            'description'  => 'nullable|string',
             'scheduled_at' => 'required|date',
-            'venue' => 'nullable|string|max:255',
-            'agenda' => 'nullable|string',
-            'attendees' => 'required|array',
-            'attendees.*' => 'exists:users,id',
+            'venue'        => 'nullable|string|max:255',
+            'agenda'       => 'nullable|string',
+            'attendees'    => 'required|array',
+            'attendees.*'  => 'exists:users,id',
         ]);
 
         $meeting = Meeting::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'scheduled_at' => $validated['scheduled_at'],
-            'venue' => $validated['venue'] ?? null,
-            'agenda' => $validated['agenda'] ?? null,
-            'organized_by' => auth()->id(),
+            'title'         => $validated['title'],
+            'description'   => $validated['description'] ?? null,
+            'scheduled_at'  => $validated['scheduled_at'],
+            'venue'         => $validated['venue'] ?? null,
+            'agenda'        => $validated['agenda'] ?? null,
+            'organized_by'  => auth()->id(),
             'department_id' => auth()->user()->department_id,
-            'status' => 'scheduled',
+            'status'        => 'scheduled',
         ]);
 
         $meeting->attendees()->attach($validated['attendees'], ['attendance' => 'invited']);
 
-        foreach ($validated['attendees'] as $userId) {
-            NotificationLog::create([
-                'user_id' => $userId,
-                'type' => 'meeting_invite',
-                'reference_id' => $meeting->id,
-                'reference_type' => Meeting::class,
-                'message' => 'You are invited to a meeting: ' . $meeting->title . ' at ' . Carbon::parse($meeting->scheduled_at)->format('M d, Y H:i'),
-                'sent_at' => now(),
-            ]);
-        }
+        // Centralized notification
+        $this->notificationService->notifyMeetingScheduled($meeting, $validated['attendees']);
 
         return redirect()->route('hod.meetings.index')->with('success', 'Meeting scheduled successfully.');
     }
@@ -88,13 +85,13 @@ class MeetingController extends Controller
         $this->authorize('update', $meeting);
         
         $validated = $request->validate([
-            'minutes' => 'required|string',
-            'attendance' => 'required|array', // user_id => attendance_status ('attended' or 'absent')
+            'minutes'    => 'required|string',
+            'attendance' => 'required|array',
         ]);
         
         $meeting->update([
-            'minutes' => $validated['minutes'],
-            'status' => 'completed',
+            'minutes'  => $validated['minutes'],
+            'status'   => 'completed',
             'ended_at' => now(),
         ]);
         
@@ -102,17 +99,9 @@ class MeetingController extends Controller
             $meeting->attendees()->updateExistingPivot($userId, ['attendance' => $status]);
         }
         
-        // Notify attendees about minutes
-        foreach ($meeting->attendees as $attendee) {
-            NotificationLog::create([
-                'user_id' => $attendee->id,
-                'type' => 'meeting_minutes',
-                'reference_id' => $meeting->id,
-                'reference_type' => Meeting::class,
-                'message' => 'Minutes for meeting "' . $meeting->title . '" have been published.',
-                'sent_at' => now(),
-            ]);
-        }
+        // Centralized notification
+        $attendeeIds = $meeting->attendees->pluck('id')->toArray();
+        $this->notificationService->notifyMeetingUpdated($meeting, $attendeeIds);
         
         return redirect()->route('hod.meetings.show', $meeting)->with('success', 'Meeting marked as completed and minutes saved.');
     }

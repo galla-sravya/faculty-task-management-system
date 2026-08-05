@@ -75,10 +75,25 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Recently Completed Tasks
+        $recentlyCompletedTasks = Task::where('department_id', $departmentId)
+            ->where('status', 'completed')
+            ->latest('updated_at')
+            ->take(5)
+            ->get();
+
+        // Recent Activity Log Stream
+        $recentActivities = \App\Models\TaskActivity::whereHas('task', fn ($q) => $q->where('department_id', $departmentId))
+            ->with(['user', 'task'])
+            ->latest()
+            ->take(6)
+            ->get();
+
         return view('hod.dashboard', compact(
             'totalTasks', 'completedTasks', 'inProgressTasks', 'overdueTasks',
             'completionRate', 'recentTasks', 'upcomingDeadlines', 'upcomingMeetings',
-            'faculties', 'categories', 'documentsAwaitingReview'
+            'faculties', 'categories', 'documentsAwaitingReview',
+            'recentlyCompletedTasks', 'recentActivities'
         ));
     }
 

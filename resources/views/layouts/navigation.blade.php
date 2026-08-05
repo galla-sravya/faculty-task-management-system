@@ -26,8 +26,33 @@
             <a href="{{ route('hod.faculty.index') }}" class="sidebar-link {{ request()->routeIs('hod.faculty.*') ? 'active' : '' }}" title="Faculty">
                 <i class="bi bi-people"></i><span class="sidebar-label">Faculty</span>
             </a>
+            <a href="{{ route('calendar.index') }}" class="sidebar-link {{ request()->routeIs('calendar.index') ? 'active' : '' }}" title="Calendar">
+                <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
+            </a>
             <a href="{{ route('hod.reports.index') }}" class="sidebar-link {{ request()->routeIs('hod.reports.*') ? 'active' : '' }}" title="Reports">
                 <i class="bi bi-bar-chart-line"></i><span class="sidebar-label">Reports</span>
+            </a>
+            <a href="{{ route('hod.tasks.archived') }}" class="sidebar-link {{ request()->routeIs('hod.tasks.archived') ? 'active' : '' }}" title="Archived Tasks">
+                <i class="bi bi-archive"></i><span class="sidebar-label">Archived Tasks</span>
+            </a>
+        @elseif(auth()->user()->isNbaCoordinator())
+            <a href="{{ route('nba.dashboard') }}" class="sidebar-link {{ request()->routeIs('nba.dashboard') ? 'active' : '' }}" title="NBA Dashboard">
+                <i class="bi bi-speedometer2"></i><span class="sidebar-label">NBA Dashboard</span>
+            </a>
+            <a href="{{ route('nba.tasks.index') }}" class="sidebar-link {{ request()->routeIs('nba.tasks.*') ? 'active' : '' }}" title="NBA Tasks">
+                <i class="bi bi-list-task"></i><span class="sidebar-label">NBA Tasks</span>
+            </a>
+            <a href="{{ route('nba.meetings.index') }}" class="sidebar-link {{ request()->routeIs('nba.meetings.*') ? 'active' : '' }}" title="NBA Meetings">
+                <i class="bi bi-calendar-event"></i><span class="sidebar-label">NBA Meetings</span>
+            </a>
+            <a href="{{ route('calendar.index') }}" class="sidebar-link {{ request()->routeIs('calendar.index') ? 'active' : '' }}" title="Calendar">
+                <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
+            </a>
+            <a href="{{ route('nba.reports.index') }}" class="sidebar-link {{ request()->routeIs('nba.reports.*') ? 'active' : '' }}" title="NBA Reports">
+                <i class="bi bi-bar-chart-line"></i><span class="sidebar-label">NBA Reports</span>
+            </a>
+            <a href="{{ route('nba.tasks.archived') }}" class="sidebar-link {{ request()->routeIs('nba.tasks.archived') ? 'active' : '' }}" title="Archived Tasks">
+                <i class="bi bi-archive"></i><span class="sidebar-label">Archived Tasks</span>
             </a>
         @else
             <a href="{{ route('faculty.dashboard') }}" class="sidebar-link {{ request()->routeIs('faculty.dashboard') ? 'active' : '' }}" title="Dashboard">
@@ -38,6 +63,9 @@
             </a>
             <a href="{{ route('faculty.meetings.index') }}" class="sidebar-link {{ request()->routeIs('faculty.meetings.*') ? 'active' : '' }}" title="Meetings">
                 <i class="bi bi-calendar-event"></i><span class="sidebar-label">Meetings</span>
+            </a>
+            <a href="{{ route('calendar.index') }}" class="sidebar-link {{ request()->routeIs('calendar.index') ? 'active' : '' }}" title="Calendar">
+                <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
             </a>
             <a href="{{ route('faculty.reports.index') }}" class="sidebar-link {{ request()->routeIs('faculty.reports.*') ? 'active' : '' }}" title="Reports">
                 <i class="bi bi-bar-chart-line"></i><span class="sidebar-label">Reports</span>
@@ -91,6 +119,16 @@
         </h1>
     </div>
     <div class="topbar-right">
+        <!-- Global Search Bar -->
+        <form action="{{ route('global.search') }}" method="GET" class="d-none d-md-flex align-items-center me-2">
+            <div class="input-group input-group-sm" style="max-width: 240px;">
+                <input type="text" name="q" class="form-control border-end-0 bg-light" placeholder="Search tasks, faculty..." style="font-size: 0.78rem;" value="{{ request('q') }}">
+                <button class="btn btn-outline-secondary border-start-0 bg-light" type="submit" style="font-size: 0.78rem;">
+                    <i class="bi bi-search text-muted"></i>
+                </button>
+            </div>
+        </form>
+
         <!-- Notifications Bell -->
         <a href="{{ route('notifications.index') }}" class="topbar-icon-btn position-relative" title="Notifications">
             <i class="bi bi-bell"></i>
@@ -105,7 +143,7 @@
             <a class="d-flex align-items-center text-decoration-none dropdown-toggle topbar-user" href="#" role="button" id="topbarUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
                 <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="rounded-circle shadow-sm object-fit-cover" style="width:32px;height:32px;border:2px solid var(--navy);">
                 <span class="topbar-user-name">{{ auth()->user()->name }}</span>
-                <span class="badge bg-light border ms-1" style="color:var(--navy);font-size:0.65rem;">{{ ucfirst(auth()->user()->role) }}</span>
+                <span class="badge bg-light border ms-1" style="color:var(--navy);font-size:0.65rem;">{{ str_replace('_', ' ', ucfirst(auth()->user()->role)) }}</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="topbarUserMenu" style="border-color:var(--border);">
                 <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('profile.edit') }}"><i class="bi bi-person me-1"></i>My Profile</a></li>

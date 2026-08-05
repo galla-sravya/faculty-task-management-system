@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->role === 'faculty';
     }
 
+    public function isNbaCoordinator(): bool
+    {
+        return $this->role === 'nba_coordinator';
+    }
+
     public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Department::class);

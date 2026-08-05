@@ -5,13 +5,19 @@ namespace App\Http\Controllers\Faculty;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\TaskDocument;
-use App\Models\TaskActivity;
-use App\Models\NotificationLog;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class TaskDocumentController extends Controller
 {
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Upload one or more documents to a task (as draft).
      */
@@ -43,27 +49,11 @@ class TaskDocumentController extends Controller
             ]);
 
             $uploaded[] = $doc;
-
-            // Activity log
-            TaskActivity::create([
-                'task_id'     => $task->id,
-                'user_id'     => auth()->id(),
-                'action'      => 'document_uploaded',
-                'description' => auth()->user()->name . ' uploaded document "' . $doc->file_name . '".',
-            ]);
         }
 
-        // Notify HOD
-        $hodId = $task->created_by;
-        if ($hodId && $hodId !== auth()->id()) {
-            NotificationLog::create([
-                'user_id'        => $hodId,
-                'type'           => 'document_uploaded',
-                'reference_id'   => $task->id,
-                'reference_type' => Task::class,
-                'message'        => auth()->user()->name . ' uploaded ' . count($uploaded) . ' document(s) for task: "' . $task->title . '".',
-                'sent_at'        => now(),
-            ]);
+        if (!empty($uploaded)) {
+            $this->notificationService->notifyDocumentUploaded($task, count($uploaded), $uploaded[0]);
+            $this->notificationService->updateAutomaticTaskProgress($task, 'document upload');
         }
 
         return redirect()->route('faculty.tasks.show', $task)
@@ -75,7 +65,11 @@ class TaskDocumentController extends Controller
      */
     public function replace(Request $request, Task $task, TaskDocument $document)
     {
-        $this->authorize('uploadDocument', $task);
+        $this->authorize('view', $task);
+
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'Only the document owner may replace their own document.');
+        }
 
         $request->validate([
             'document' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,png,jpg,jpeg',
@@ -104,26 +98,9 @@ class TaskDocumentController extends Controller
             'file_type'            => $file->getClientMimeType(),
         ]);
 
-        // Activity log
-        TaskActivity::create([
-            'task_id'     => $task->id,
-            'user_id'     => auth()->id(),
-            'action'      => 'document_replaced',
-            'description' => auth()->user()->name . ' uploaded a new version of "' . $document->file_name . '" (v' . $newDoc->version . ').',
-        ]);
-
-        // Notify HOD
-        $hodId = $task->created_by;
-        if ($hodId && $hodId !== auth()->id()) {
-            NotificationLog::create([
-                'user_id'        => $hodId,
-                'type'           => 'document_replaced',
-                'reference_id'   => $task->id,
-                'reference_type' => Task::class,
-                'message'        => auth()->user()->name . ' replaced document "' . $document->file_name . '" (v' . $newDoc->version . ') for task: "' . $task->title . '".',
-                'sent_at'        => now(),
-            ]);
-        }
+        // Centralized notification & activity logging
+        $this->notificationService->notifyDocumentReuploaded($task, $newDoc);
+        $this->notificationService->updateAutomaticTaskProgress($task, 'document re-upload');
 
         return redirect()->route('faculty.tasks.show', $task)
             ->with('success', 'Document replaced successfully (v' . $newDoc->version . ').');
@@ -134,7 +111,7 @@ class TaskDocumentController extends Controller
      */
     public function download(Task $task, TaskDocument $document)
     {
-        $this->authorize('uploadDocument', $task);
+        $this->authorize('view', $task);
 
         if (!Storage::disk('public')->exists($document->file_path)) {
             return back()->with('error', 'File not found.');
@@ -148,7 +125,7 @@ class TaskDocumentController extends Controller
      */
     public function submit(Request $request, Task $task)
     {
-        $this->authorize('uploadDocument', $task);
+        $this->authorize('updateProgress', $task);
 
         // Find all draft documents by this user for this task
         $draftDocs = TaskDocument::where('task_id', $task->id)
@@ -165,36 +142,14 @@ class TaskDocumentController extends Controller
             $doc->update(['review_status' => 'submitted']);
         }
 
-        // Activity log
-        TaskActivity::create([
-            'task_id'     => $task->id,
-            'user_id'     => auth()->id(),
-            'action'      => 'document_submitted',
-            'description' => auth()->user()->name . ' submitted ' . $draftDocs->count() . ' document(s) for review.',
-        ]);
-
         // Update task status to pending_review if not already completed
         if (!in_array($task->status, ['completed', 'pending_review'])) {
             $task->update(['status' => 'pending_review']);
         }
 
-        // Update user's pivot status
-        auth()->user()->assignedTasks()->updateExistingPivot($task->id, [
-            'status' => 'in_progress',
-        ]);
-
-        // Notify HOD
-        $hodId = $task->created_by;
-        if ($hodId && $hodId !== auth()->id()) {
-            NotificationLog::create([
-                'user_id'        => $hodId,
-                'type'           => 'document_submitted',
-                'reference_id'   => $task->id,
-                'reference_type' => Task::class,
-                'message'        => auth()->user()->name . ' submitted ' . $draftDocs->count() . ' document(s) for review on task: "' . $task->title . '".',
-                'sent_at'        => now(),
-            ]);
-        }
+        // Centralized notification & activity logging
+        $this->notificationService->notifySubmittedForReview($task, $draftDocs->count());
+        $this->notificationService->updateAutomaticTaskProgress($task, 'submission for review');
 
         return redirect()->route('faculty.tasks.show', $task)
             ->with('success', $draftDocs->count() . ' document(s) submitted for review.');
@@ -205,7 +160,7 @@ class TaskDocumentController extends Controller
      */
     public function versions(Task $task, TaskDocument $document)
     {
-        $this->authorize('uploadDocument', $task);
+        $this->authorize('view', $task);
 
         $allVersions = $document->getAllVersions();
 

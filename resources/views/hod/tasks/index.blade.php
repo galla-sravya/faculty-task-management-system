@@ -94,9 +94,45 @@
                             </div>
                         </td>
                         <td class="pe-4">
-                            <a href="{{ route('hod.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary fw-medium px-3" style="font-size: 0.8rem; border-color: var(--navy); color: var(--navy);" onclick="event.stopPropagation();">
-                                View
-                            </a>
+                            <div class="d-inline-flex gap-1" onclick="event.stopPropagation();">
+                                <a href="{{ route('hod.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary fw-medium px-2 py-1" style="font-size: 0.78rem; border-color: var(--navy); color: var(--navy);">
+                                    View
+                                </a>
+                                @can('delete', $task)
+                                <button type="button" class="btn btn-sm btn-outline-warning fw-medium text-dark px-2 py-1" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#archiveModal{{ $task->id }}">
+                                    Archive
+                                </button>
+                                <!-- Modal for this task -->
+                                <div class="modal fade" id="archiveModal{{ $task->id }}" tabindex="-1" aria-hidden="true" onclick="event.stopPropagation();">
+                                    <div class="modal-dialog modal-dialog-centered text-start">
+                                        <div class="modal-content border-0 shadow">
+                                            <div class="modal-header bg-light border-bottom">
+                                                <h5 class="modal-title fw-bold text-navy">
+                                                    <i class="bi bi-archive me-2 text-warning"></i>Archive Task?
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <p class="mb-0 text-secondary" style="font-size:0.92rem; line-height:1.6;">
+                                                    This task contains progress, documents, comments, collaborators and history.<br><br>
+                                                    Archiving will remove it from active dashboards but preserve all records.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer bg-light border-top">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{{ route('hod.tasks.destroy', $task) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold px-3">
+                                                        <i class="bi bi-archive me-1"></i>Archive Task
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endcan
+                            </div>
                         </td>
                     </tr>
                     @empty

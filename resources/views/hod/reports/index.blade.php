@@ -6,6 +6,14 @@
         <h1 class="h3 fw-bold mb-1" style="color: var(--navy);">Completed Reports Archive</h1>
         <p class="text-muted small mb-0">Transaction-history style record of fully completed tasks</p>
     </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('hod.reports.export', ['type' => 'tasks']) }}" class="btn btn-sm btn-outline-primary fw-medium shadow-sm d-flex align-items-center gap-1">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export Tasks (CSV)
+        </a>
+        <a href="{{ route('hod.reports.export', ['type' => 'faculty']) }}" class="btn btn-sm btn-outline-success fw-medium shadow-sm d-flex align-items-center gap-1">
+            <i class="bi bi-people"></i> Export Faculty Performance (CSV)
+        </a>
+    </div>
 </div>
 
 <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">

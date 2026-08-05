@@ -138,42 +138,40 @@
                 <form action="{{ route('faculty.tasks.updateProgress', $task) }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
-                    <!-- Range Slider for Progress -->
+                    <!-- Automated Read-Only Progress Display -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center">
-                            <span>Progress Percentage</span>
-                            <span id="progressLabel" class="badge rounded-pill px-3 py-2" style="background-color: var(--navy); color: #fff; font-size: 0.9rem;">{{ $pivot->progress_percentage }}%</span>
+                        <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-1">
+                            <span>Current Progress <span class="badge bg-light text-muted border fw-normal ms-1" style="font-size:0.72rem;">Calculated Automatically</span></span>
+                            <span class="badge rounded-pill px-3 py-2" style="background-color: var(--navy); color: #fff; font-size: 0.9rem;">{{ $task->overall_progress }}%</span>
                         </label>
 
-                        <!-- Styled Range Slider -->
-                        <div class="position-relative mt-2">
-                            <input type="range" class="form-range psg-range-slider" name="progress_percentage" id="progressRange"
-                                   min="0" max="100" step="5" value="{{ $pivot->progress_percentage }}">
-                            <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.7rem;">
-                                <span>0%</span>
-                                <span>25%</span>
-                                <span>50%</span>
-                                <span>75%</span>
-                                <span>100%</span>
+                        <div class="progress mt-2" style="height: 14px; background-color: #e9ecef; border-radius: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                                 style="width: {{ $task->overall_progress }}%; background-color: var(--navy); border-radius: 6px; transition: width 0.3s ease;">
                             </div>
                         </div>
 
-                        <!-- Visual Progress Bar Preview -->
-                        <div class="mt-3">
-                            <div class="progress" style="height: 12px; background-color: #e9ecef; border-radius: 6px;">
-                                <div class="progress-bar" id="progressPreview" role="progressbar"
-                                     style="width: {{ $pivot->progress_percentage }}%; background-color: var(--navy); border-radius: 6px; transition: width 0.3s ease;"></div>
-                            </div>
+                        <div class="text-muted mt-2 d-flex align-items-center gap-1.5" style="font-size: 0.78rem;" data-bs-toggle="tooltip" title="Progress is automatically calculated based on completed task activities.">
+                            <i class="bi bi-info-circle text-primary"></i>
+                            <span>Progress is automatically calculated based on completed task activities.</span>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-semibold text-dark">My Status</label>
-                        <select name="status" id="statusSelect" class="form-select border" style="border-color: var(--border) !important;">
-                            <option value="pending" {{ $pivot->status === 'pending' ? 'selected' : '' }}>⏳ Pending</option>
-                            <option value="in_progress" {{ $pivot->status === 'in_progress' ? 'selected' : '' }}>🔄 In Progress</option>
-                            <option value="pending_review" {{ $pivot->status === 'pending_review' ? 'selected' : '' }}>📋 Pending Review</option>
-                            <option value="completed" {{ $pivot->status === 'completed' ? 'selected' : '' }}>✅ Completed</option>
+                        <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-2">
+                            <span>Workflow Stage</span>
+                            @php $stBadge = $task->status_badge_details; @endphp
+                            <span class="badge rounded-pill px-3 py-1.5 fw-semibold {{ $stBadge['class'] ?? '' }}" style="{{ $stBadge['style'] ?? '' }} font-size: 0.78rem;">
+                                {{ $stBadge['label'] }}
+                            </span>
+                        </label>
+                        <select name="status" id="statusSelect" class="form-select border rounded-3 py-2 px-3" style="border-color: var(--border) !important; font-size: 0.88rem; font-weight: 500;">
+                            <option value="not_started" {{ in_array($pivot->status, ['not_started', 'pending']) ? 'selected' : '' }}>Not Started</option>
+                            <option value="collecting_resources" {{ $pivot->status === 'collecting_resources' ? 'selected' : '' }}>Collecting Resources</option>
+                            <option value="working_on_task" {{ in_array($pivot->status, ['working_on_task', 'in_progress']) ? 'selected' : '' }}>Working on Task</option>
+                            <option value="documents_uploaded" {{ $pivot->status === 'documents_uploaded' ? 'selected' : '' }}>Supporting Documents Uploaded</option>
+                            <option value="checklist_completed" {{ $pivot->status === 'checklist_completed' ? 'selected' : '' }}>Checklist Completed</option>
+                            <option value="submitted_for_review" {{ in_array($pivot->status, ['submitted_for_review', 'pending_review']) ? 'selected' : '' }}>Submitted for Review</option>
                         </select>
                     </div>
 
@@ -184,34 +182,180 @@
 
                     <div class="d-grid">
                         <button type="submit" class="btn text-white fw-semibold py-2 shadow-sm" style="background-color: var(--navy);">
-                            <i class="bi bi-check2-circle me-1"></i> Update Progress
+                            <i class="bi bi-check2-circle me-1"></i> Update Status
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TASK SUBTASKS / CHECKLIST SECTION                             -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mt-4 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+        <h6 class="m-0 fw-bold" style="color: var(--navy);">
+            <i class="bi bi-card-checklist me-2" style="color: var(--gold);"></i>Subtasks & Checklist
+        </h6>
+        @php $items = $task->checklistItems; @endphp
+        @if($items->isNotEmpty())
+            <span class="badge bg-light text-dark border" style="font-size:0.75rem;">
+                {{ $items->where('is_completed', true)->count() }} / {{ $items->count() }} Completed
+            </span>
+        @endif
+    </div>
+    <div class="card-body p-4">
+        <!-- Checklist Items List -->
+        <div class="list-group list-group-flush">
+            @forelse($items as $item)
+                <div class="list-group-item px-2 py-2.5 border-bottom d-flex align-items-center justify-content-between">
+                    <form action="{{ route('tasks.checklist.toggle', [$task, $item]) }}" method="POST" class="d-flex align-items-center gap-2 flex-grow-1">
+                        @csrf
+                        <input type="checkbox" class="form-check-input mt-0" onchange="this.form.submit()" {{ $item->is_completed ? 'checked' : '' }} style="cursor:pointer;width:18px;height:18px;">
+                        <span class="{{ $item->is_completed ? 'text-decoration-line-through text-muted' : 'text-dark fw-medium' }}" style="font-size:0.88rem;">
+                            {{ $item->title }}
+                        </span>
+                        @if($item->is_completed && $item->completedByUser)
+                            <span class="badge bg-light text-muted border ms-2" style="font-size:0.65rem;">Done by {{ $item->completedByUser->name }}</span>
+                        @endif
+                    </form>
+                </div>
+            @empty
+                <div class="text-center py-3 text-muted small">No subtasks assigned yet.</div>
+            @endforelse
+        </div>
+    </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- DOCUMENTS MANAGEMENT SECTION                                  -->
+<!-- DISCUSSION & COMMENTS SECTION                                 -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3">
+        <h6 class="m-0 fw-bold" style="color: var(--navy);">
+            <i class="bi bi-chat-dots me-2" style="color: var(--maroon);"></i>Task Discussion & Comments
+        </h6>
+    </div>
+    <div class="card-body p-4">
+        <!-- Post Comment Form -->
+        <form action="{{ route('tasks.comments.store', $task) }}" method="POST" enctype="multipart/form-data" class="mb-4">
+            @csrf
+            <div class="mb-2">
+                <textarea name="comment" class="form-control border" rows="3" placeholder="Write a comment or update for the HOD..." required style="font-size:0.88rem;"></textarea>
+            </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <input type="file" name="attachment" class="form-control form-control-sm border" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                </div>
+                <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm px-4" style="background-color: var(--navy);">
+                    <i class="bi bi-send me-1"></i>Post Comment
+                </button>
+            </div>
+        </form>
+
+        <!-- Comments List -->
+        <div class="list-group list-group-flush">
+            @forelse($task->comments as $comment)
+                <div class="list-group-item px-0 py-3 border-bottom">
+                    <div class="d-flex align-items-start gap-2.5">
+                        <img src="{{ $comment->user->profile_photo_url }}" class="rounded-circle shadow-sm" style="width:32px;height:32px;object-fit:cover;border:1px solid var(--navy);">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-dark" style="font-size:0.85rem;">{{ $comment->user->name }}</span>
+                                <span class="text-muted small" style="font-size:0.72rem;">{{ $comment->created_at->diffForHumans() }}</span>
+                            </div>
+                            <div class="text-dark" style="font-size:0.85rem;">{{ $comment->comment }}</div>
+                            @if($comment->attachment_path)
+                                <div class="mt-2">
+                                    <a href="{{ Storage::url($comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                        <i class="bi bi-paperclip text-primary"></i> {{ $comment->attachment_name ?? 'Attachment' }}
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-3 text-muted small">No comments posted yet.</div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- AUDIT HISTORY TAB / SECTION (Collapsible)                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3 cursor-pointer" 
+         data-bs-toggle="collapse" 
+         data-bs-target="#facultyAuditHistoryCollapse" 
+         aria-expanded="false" 
+         aria-controls="facultyAuditHistoryCollapse"
+         style="cursor: pointer;">
+        <div class="d-flex align-items-center justify-content-between">
+            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
+                <i class="bi bi-chevron-right collapse-icon text-muted" style="transition: transform 0.25s ease;"></i>
+                <i class="bi bi-journal-text me-1" style="color: var(--navy);"></i>
+                <span>Audit History</span>
+                <span class="text-muted fw-normal" style="font-size: 0.85rem;">({{ $task->auditLogs->count() }} {{ Str::plural('Change', $task->auditLogs->count()) }})</span>
+            </h6>
+            <span class="badge bg-light text-secondary border px-2.5 py-1 small fw-normal">Click to expand</span>
+        </div>
+    </div>
+    <div class="collapse" id="facultyAuditHistoryCollapse">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.7rem;">
+                        <tr>
+                            <th class="ps-3 py-2.5">Date & Time</th>
+                            <th class="py-2.5">Changed By</th>
+                            <th class="py-2.5">Field Changed</th>
+                            <th class="py-2.5">Old Value</th>
+                            <th class="pe-3 py-2.5">New Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($task->auditLogs as $log)
+                        <tr>
+                            <td class="ps-3 text-nowrap small text-muted">{{ $log->created_at->format('M d, Y g:i A') }}</td>
+                            <td class="fw-semibold text-dark" style="font-size:0.82rem;">{{ $log->user->name ?? 'System' }}</td>
+                            <td><span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ $log->formatted_field_name }}</span></td>
+                            <td class="small text-muted" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $log->old_value ?? '—' }}</td>
+                            <td class="pe-3 small text-dark fw-medium" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $log->new_value ?? '—' }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center py-3 text-muted small">No audit modifications recorded yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- SHARED WORKSPACE DOCUMENTS MANAGEMENT SECTION                  -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="card bg-white shadow-sm border-0 mt-4" style="border-radius: var(--radius, 8px);">
     <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
-        <h6 class="m-0 fw-bold" style="color: var(--navy);">
-            <i class="bi bi-folder2-open me-2" style="color: var(--gold);"></i>Documents
-        </h6>
+        <div>
+            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
+                <i class="bi bi-folder2-open" style="color: var(--gold); font-size: 1.2rem;"></i>Shared Workspace Documents
+            </h6>
+            <span class="text-muted small" style="font-size:0.75rem;">Documents uploaded by all assigned faculty collaborators</span>
+        </div>
         <div class="d-flex align-items-center gap-2">
-            @if(isset($latestDocuments) && $latestDocuments->where('review_status', 'draft')->count() > 0)
+            @if(isset($latestDocuments) && $latestDocuments->where('user_id', auth()->id())->where('review_status', 'draft')->count() > 0)
                 <form action="{{ route('faculty.tasks.documents.submit', $task) }}" method="POST" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn btn-sm fw-medium text-white shadow-sm" style="background-color: var(--navy); font-size: 0.8rem;" onclick="return confirm('Submit all draft documents for HOD review?')">
-                        <i class="bi bi-send me-1"></i>Submit All for Review
+                    <button type="submit" class="btn btn-sm fw-medium text-white shadow-sm" style="background-color: var(--navy); font-size: 0.8rem;" onclick="return confirm('Submit your draft documents for HOD review?')">
+                        <i class="bi bi-send me-1"></i>Submit My Drafts for Review
                     </button>
                 </form>
             @endif
             <button class="btn btn-sm btn-outline-primary fw-medium" data-bs-toggle="collapse" data-bs-target="#uploadSection" style="border-color: var(--navy); color: var(--navy); font-size: 0.8rem;">
-                <i class="bi bi-cloud-upload me-1"></i>Upload Documents
+                <i class="bi bi-cloud-upload me-1"></i>Upload Document
             </button>
         </div>
     </div>
@@ -237,103 +381,129 @@
             </div>
         </div>
 
-        <!-- Documents Table -->
-        @if(isset($latestDocuments) && $latestDocuments->isNotEmpty())
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                        <tr>
-                            <th class="ps-3 py-3">Document</th>
-                            <th class="py-3">Version</th>
-                            <th class="py-3">Uploaded</th>
-                            <th class="py-3">Remarks</th>
-                            <th class="py-3">Status</th>
-                            <th class="pe-3 py-3 text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($latestDocuments as $doc)
-                            @php $badge = $doc->review_status_badge; @endphp
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <i class="bi {{ $doc->file_icon }}" style="color: {{ $doc->file_icon_color }}; font-size: 1.2rem;"></i>
-                                        <div>
-                                            <div class="fw-semibold text-dark text-truncate" style="max-width: 200px; font-size: 0.85rem;" title="{{ $doc->file_name }}">{{ $doc->file_name }}</div>
-                                            <div class="text-muted" style="font-size: 0.7rem;">{{ $doc->formatted_file_size }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">v{{ $doc->version }}</span>
-                                </td>
-                                <td class="text-nowrap" style="font-size: 0.78rem;">
-                                    <span class="text-muted">{{ $doc->created_at->format('M d, Y') }}</span>
-                                </td>
-                                <td>
-                                    @if($doc->remarks)
-                                        <span class="text-muted small text-truncate d-inline-block" style="max-width: 150px; font-size: 0.78rem;" title="{{ $doc->remarks }}">{{ $doc->remarks }}</span>
-                                    @else
-                                        <span class="text-muted small" style="font-size: 0.75rem;">—</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge rounded-pill px-2 py-1" style="background-color: {{ $badge['bg'] }}; color: {{ $badge['text'] }}; font-weight: 600; font-size: 0.7rem;">
-                                        {{ $badge['label'] }}
-                                    </span>
-                                </td>
-                                <td class="pe-3 text-end">
-                                    <div class="d-flex align-items-center gap-1 justify-content-end">
-                                        {{-- Preview (PDF/Images) --}}
-                                        @if($doc->is_previewable)
-                                            <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size: 0.7rem;" title="Preview">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                        @endif
-                                        {{-- Download --}}
-                                        <a href="{{ route('faculty.tasks.documents.download', [$task, $doc]) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="Download">
-                                            <i class="bi bi-download"></i>
-                                        </a>
-                                        {{-- Version History --}}
-                                        <button class="btn btn-sm btn-outline-info px-2 py-1" style="font-size: 0.7rem;" title="Version History" onclick="loadVersionHistory({{ $doc->original_document_id ?? $doc->id }}, {{ $task->id }})">
-                                            <i class="bi bi-clock-history"></i>
-                                        </button>
-                                        {{-- Replace --}}
-                                        @if(in_array($doc->review_status, ['draft', 'changes_requested']))
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1" style="font-size: 0.7rem;" title="Replace" data-bs-toggle="modal" data-bs-target="#replaceDocModal{{ $doc->id }}">
-                                                <i class="bi bi-arrow-repeat"></i>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            {{-- Review Comments Row --}}
-                            @if($doc->review_comments && in_array($doc->review_status, ['changes_requested', 'rejected']))
-                                <tr>
-                                    <td colspan="6" class="ps-3 pe-3 py-2" style="background-color: {{ $doc->review_status === 'rejected' ? '#fce4ec' : '#fff8e1' }};">
-                                        <div class="d-flex align-items-start gap-2">
-                                            <i class="bi bi-chat-left-text {{ $doc->review_status === 'rejected' ? 'text-danger' : 'text-warning' }}" style="font-size: 0.85rem; margin-top: 2px;"></i>
-                                            <div>
-                                                <div class="fw-semibold small" style="font-size: 0.78rem; color: {{ $doc->review_status === 'rejected' ? '#c62828' : '#f57f17' }};">
-                                                    {{ $doc->review_status === 'rejected' ? 'Rejected' : 'Changes Requested' }} by {{ $doc->reviewer->name ?? 'HOD' }}
-                                                    @if($doc->reviewed_at)
-                                                        <span class="fw-normal text-muted ms-1">{{ $doc->reviewed_at->diffForHumans() }}</span>
+        <!-- Documents Grouped By Faculty -->
+        @if(isset($groupedDocuments) && $groupedDocuments->isNotEmpty())
+            @foreach($groupedDocuments as $uploaderId => $facultyDocs)
+                @php
+                    $uploader = $facultyDocs->first()->user ?? \App\Models\User::find($uploaderId);
+                    $isSelf = auth()->id() === $uploaderId;
+                @endphp
+                <div class="card border mb-4 shadow-none rounded-3" style="border-color: var(--border) !important;">
+                    <div class="card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="{{ $uploader->profile_photo_url }}" alt="{{ $uploader->name }}" class="rounded-circle shadow-sm" style="width:28px;height:28px;object-fit:cover;border:1px solid var(--navy);">
+                            <div>
+                                <span class="fw-bold text-dark small">{{ $uploader->name }}</span>
+                                <span class="text-muted small ms-1" style="font-size:0.72rem;">({{ $uploader->designation ?? 'Faculty' }})</span>
+                                @if($isSelf)
+                                    <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.65rem;">You</span>
+                                @endif
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ $facultyDocs->count() }} Document(s)</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-white text-uppercase text-secondary" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                    <tr>
+                                        <th class="ps-3 py-2.5">Document Name</th>
+                                        <th class="py-2.5">Uploaded By</th>
+                                        <th class="py-2.5">Date & Time</th>
+                                        <th class="py-2.5">Version</th>
+                                        <th class="py-2.5">File Size</th>
+                                        <th class="py-2.5">Status</th>
+                                        <th class="pe-3 py-2.5 text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($facultyDocs as $doc)
+                                        @php $badge = $doc->review_status_badge; @endphp
+                                        <tr>
+                                            <td class="ps-3">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="bi {{ $doc->file_icon }}" style="color: {{ $doc->file_icon_color }}; font-size: 1.2rem;"></i>
+                                                    <div>
+                                                        <div class="fw-semibold text-dark text-truncate" style="max-width: 200px; font-size: 0.85rem;" title="{{ $doc->file_name }}">{{ $doc->file_name }}</div>
+                                                        @if($doc->remarks)
+                                                            <div class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 200px;" title="{{ $doc->remarks }}">Note: {{ $doc->remarks }}</div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="small text-dark">
+                                                <span class="fw-medium">{{ $doc->user->name ?? 'Faculty' }}</span>
+                                            </td>
+                                            <td class="text-nowrap" style="font-size: 0.78rem;">
+                                                <span class="text-dark d-block fw-medium">{{ $doc->created_at->format('M d, Y') }}</span>
+                                                <span class="text-muted" style="font-size:0.7rem;">{{ $doc->created_at->format('g:i A') }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">v{{ $doc->version }}</span>
+                                            </td>
+                                            <td class="small text-muted" style="font-size: 0.78rem;">
+                                                {{ $doc->formatted_file_size }}
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill px-2 py-1" style="background-color: {{ $badge['bg'] }}; color: {{ $badge['text'] }}; font-weight: 600; font-size: 0.7rem;">
+                                                    {{ $badge['label'] }}
+                                                </span>
+                                            </td>
+                                            <td class="pe-3 text-end">
+                                                <div class="d-flex align-items-center gap-1 justify-content-end">
+                                                    {{-- Preview --}}
+                                                    @if($doc->is_previewable)
+                                                        <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size: 0.7rem;" title="Preview Document">
+                                                            <i class="bi bi-eye"></i> Preview
+                                                        </a>
+                                                    @endif
+                                                    {{-- Download --}}
+                                                    <a href="{{ route('faculty.tasks.documents.download', [$task, $doc]) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="Download Document">
+                                                        <i class="bi bi-download"></i> Download
+                                                    </a>
+                                                    {{-- Version History --}}
+                                                    <button class="btn btn-sm btn-outline-info px-2 py-1" style="font-size: 0.7rem;" title="Version History" onclick="loadVersionHistory({{ $doc->original_document_id ?? $doc->id }}, {{ $task->id }})">
+                                                        <i class="bi bi-clock-history"></i> History
+                                                    </button>
+                                                    {{-- Replace (Only document owner) --}}
+                                                    @if($isSelf && in_array($doc->review_status, ['draft', 'changes_requested']))
+                                                        <button class="btn btn-sm btn-outline-warning px-2 py-1" style="font-size: 0.7rem;" title="Replace Document" data-bs-toggle="modal" data-bs-target="#replaceDocModal{{ $doc->id }}">
+                                                            <i class="bi bi-arrow-repeat"></i> Replace
+                                                        </button>
                                                     @endif
                                                 </div>
-                                                <div class="text-dark" style="font-size: 0.8rem;">{{ $doc->review_comments }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endif
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                                            </td>
+                                        </tr>
+                                        {{-- Review Comments Row --}}
+                                        @if($doc->review_comments && in_array($doc->review_status, ['changes_requested', 'rejected']))
+                                            <tr>
+                                                <td colspan="7" class="ps-3 pe-3 py-2" style="background-color: {{ $doc->review_status === 'rejected' ? '#fce4ec' : '#fff8e1' }};">
+                                                    <div class="d-flex align-items-start gap-2">
+                                                        <i class="bi bi-chat-left-text {{ $doc->review_status === 'rejected' ? 'text-danger' : 'text-warning' }}" style="font-size: 0.85rem; margin-top: 2px;"></i>
+                                                        <div>
+                                                            <div class="fw-semibold small" style="font-size: 0.78rem; color: {{ $doc->review_status === 'rejected' ? '#c62828' : '#f57f17' }};">
+                                                                {{ $doc->review_status === 'rejected' ? 'Rejected' : 'Changes Requested' }} by {{ $doc->reviewer->name ?? 'HOD' }}
+                                                                @if($doc->reviewed_at)
+                                                                    <span class="fw-normal text-muted ms-1">{{ $doc->reviewed_at->diffForHumans() }}</span>
+                                                                @endif
+                                                            </div>
+                                                            <div class="text-dark" style="font-size: 0.8rem;">{{ $doc->review_comments }}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endif
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         @else
             <div class="text-center py-4 text-muted">
                 <i class="bi bi-folder fs-2 d-block mb-2 text-secondary"></i>
-                <p class="mb-0 small">No documents uploaded yet. Click "Upload Documents" to get started.</p>
+                <p class="mb-0 small">No documents uploaded yet. Click "Upload Document" to get started.</p>
             </div>
         @endif
     </div>
@@ -402,49 +572,62 @@
 
 <x-task-timeline :task="$task" />
 
-<!-- Activity Log Timeline -->
+<!-- Activity Log Timeline (Collapsible) -->
 @if($task->activities->count() > 0)
 <div class="card bg-white shadow-sm border-0 mt-4" style="border-radius: var(--radius, 8px);">
-    <div class="card-header bg-white border-bottom py-3">
-        <h6 class="m-0 fw-bold" style="color: var(--navy);">
-            <i class="bi bi-clock-history me-2" style="color: var(--gold);"></i>Activity Log
-        </h6>
+    <div class="card-header bg-white border-bottom py-3 cursor-pointer" 
+         data-bs-toggle="collapse" 
+         data-bs-target="#facultyActivityLogCollapse" 
+         aria-expanded="false" 
+         aria-controls="facultyActivityLogCollapse"
+         style="cursor: pointer;">
+        <div class="d-flex align-items-center justify-content-between">
+            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
+                <i class="bi bi-chevron-right collapse-icon text-muted" style="transition: transform 0.25s ease;"></i>
+                <i class="bi bi-clock-history me-1" style="color: var(--gold);"></i>
+                <span>Activity Log</span>
+                <span class="text-muted fw-normal" style="font-size: 0.85rem;">({{ $task->activities->count() }} {{ Str::plural('Event', $task->activities->count()) }})</span>
+            </h6>
+            <span class="badge bg-light text-secondary border px-2.5 py-1 small fw-normal">Click to expand</span>
+        </div>
     </div>
-    <div class="card-body p-4">
-        <div class="position-relative" style="padding-left: 24px;">
-            @foreach($task->activities as $activity)
-                @php
-                    $iconMap = [
-                        'assigned'             => ['icon' => 'bi-person-check-fill', 'color' => '#1565c0'],
-                        'collaborator_added'   => ['icon' => 'bi-person-plus-fill',  'color' => '#f57f17'],
-                        'collaborator_removed' => ['icon' => 'bi-person-dash-fill',  'color' => '#c62828'],
-                        'progress_updated'     => ['icon' => 'bi-arrow-up-circle-fill', 'color' => '#2e7d32'],
-                        'status_changed'       => ['icon' => 'bi-arrow-repeat',      'color' => '#7b1fa2'],
-                        'completed'            => ['icon' => 'bi-check-circle-fill',  'color' => '#2e7d32'],
-                        'document_uploaded'    => ['icon' => 'bi-file-earmark-plus',  'color' => '#1565c0'],
-                        'document_replaced'    => ['icon' => 'bi-file-earmark-diff',  'color' => '#f57f17'],
-                        'document_submitted'   => ['icon' => 'bi-file-earmark-arrow-up', 'color' => '#7b1fa2'],
-                        'document_approved'    => ['icon' => 'bi-file-earmark-check', 'color' => '#2e7d32'],
-                        'document_changes_requested' => ['icon' => 'bi-file-earmark-arrow-down', 'color' => '#e65100'],
-                        'document_rejected'    => ['icon' => 'bi-file-earmark-x',     'color' => '#c62828'],
-                    ];
-                    $ai = $iconMap[$activity->action] ?? ['icon' => 'bi-circle-fill', 'color' => '#6b7280'];
-                @endphp
-                <div class="d-flex align-items-start mb-3 position-relative">
-                    @if(!$loop->last)
-                        <div style="position: absolute; left: -14px; top: 20px; bottom: -12px; width: 2px; background: #e9ecef;"></div>
-                    @endif
-                    <div style="position: absolute; left: -20px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid {{ $ai['color'] }}; display: flex; align-items: center; justify-content: center; z-index: 2;">
-                        <i class="bi {{ $ai['icon'] }}" style="font-size: 0.5rem; color: {{ $ai['color'] }};"></i>
-                    </div>
-                    <div class="ms-2">
-                        <div class="fw-medium text-dark" style="font-size: 0.85rem;">{{ $activity->description }}</div>
-                        <div class="text-muted" style="font-size: 0.72rem;">
-                            <i class="bi bi-clock me-1"></i>{{ $activity->created_at->diffForHumans() }} · {{ $activity->created_at->format('M d, Y g:i A') }}
+    <div class="collapse" id="facultyActivityLogCollapse">
+        <div class="card-body p-4">
+            <div class="position-relative" style="padding-left: 24px;">
+                @foreach($task->activities as $activity)
+                    @php
+                        $iconMap = [
+                            'assigned'             => ['icon' => 'bi-person-check-fill', 'color' => '#1565c0'],
+                            'collaborator_added'   => ['icon' => 'bi-person-plus-fill',  'color' => '#f57f17'],
+                            'collaborator_removed' => ['icon' => 'bi-person-dash-fill',  'color' => '#c62828'],
+                            'progress_updated'     => ['icon' => 'bi-arrow-up-circle-fill', 'color' => '#2e7d32'],
+                            'status_changed'       => ['icon' => 'bi-arrow-repeat',      'color' => '#7b1fa2'],
+                            'completed'            => ['icon' => 'bi-check-circle-fill',  'color' => '#2e7d32'],
+                            'document_uploaded'    => ['icon' => 'bi-file-earmark-plus',  'color' => '#1565c0'],
+                            'document_replaced'    => ['icon' => 'bi-file-earmark-diff',  'color' => '#f57f17'],
+                            'document_submitted'   => ['icon' => 'bi-file-earmark-arrow-up', 'color' => '#7b1fa2'],
+                            'document_approved'    => ['icon' => 'bi-file-earmark-check', 'color' => '#2e7d32'],
+                            'document_changes_requested' => ['icon' => 'bi-file-earmark-arrow-down', 'color' => '#e65100'],
+                            'document_rejected'    => ['icon' => 'bi-file-earmark-x',     'color' => '#c62828'],
+                        ];
+                        $ai = $iconMap[$activity->action] ?? ['icon' => 'bi-circle-fill', 'color' => '#6b7280'];
+                    @endphp
+                    <div class="d-flex align-items-start mb-3 position-relative">
+                        @if(!$loop->last)
+                            <div style="position: absolute; left: -14px; top: 20px; bottom: -12px; width: 2px; background: #e9ecef;"></div>
+                        @endif
+                        <div style="position: absolute; left: -20px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid {{ $ai['color'] }}; display: flex; align-items: center; justify-content: center; z-index: 2;">
+                            <i class="bi {{ $ai['icon'] }}" style="font-size: 0.5rem; color: {{ $ai['color'] }};"></i>
+                        </div>
+                        <div class="ms-2">
+                            <div class="fw-medium text-dark" style="font-size: 0.85rem;">{{ $activity->description }}</div>
+                            <div class="text-muted" style="font-size: 0.72rem;">
+                                <i class="bi bi-clock me-1"></i>{{ $activity->created_at->diffForHumans() }} · {{ $activity->created_at->format('M d, Y g:i A') }}
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         </div>
     </div>
 </div>

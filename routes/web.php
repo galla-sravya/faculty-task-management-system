@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         if (auth()->user()->isHod()) {
             return redirect()->route('hod.dashboard');
         }
+        if (auth()->user()->isNbaCoordinator()) {
+            return redirect()->route('nba.dashboard');
+        }
         return redirect()->route('faculty.dashboard');
     })->name('dashboard');
     
@@ -28,12 +31,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
     Route::post('/notifications/{notification}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markRead');
 
+    // Global Search & Calendar
+    Route::get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('global.search');
+    Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar.index');
+
+    // NBA Coordinator Routes
+    Route::middleware('role:nba_coordinator')->prefix('nba')->name('nba.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\NBA\DashboardController::class, 'index'])->name('dashboard');
+        
+        Route::get('tasks/archived', [App\Http\Controllers\NBA\TaskController::class, 'archived'])->name('tasks.archived');
+        Route::post('tasks/{task}/restore', [App\Http\Controllers\NBA\TaskController::class, 'restore'])->name('tasks.restore');
+        Route::resource('tasks', App\Http\Controllers\NBA\TaskController::class);
+
+        Route::resource('meetings', App\Http\Controllers\NBA\MeetingController::class);
+        Route::get('meetings/{meeting}/complete', [App\Http\Controllers\NBA\MeetingController::class, 'completeForm'])->name('meetings.completeForm');
+        Route::post('meetings/{meeting}/complete', [App\Http\Controllers\NBA\MeetingController::class, 'complete'])->name('meetings.complete');
+
+        Route::get('reports', [App\Http\Controllers\NBA\ReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/export/csv', [App\Http\Controllers\NBA\ReportController::class, 'exportCsv'])->name('reports.export');
+        Route::get('reports/{task}', [App\Http\Controllers\NBA\ReportController::class, 'show'])->name('reports.show');
+
+        Route::post('tasks/{task}/documents/{document}/review', [App\Http\Controllers\NBA\TaskDocumentController::class, 'review'])->name('tasks.documents.review');
+        Route::get('tasks/{task}/documents/{document}/download', [App\Http\Controllers\NBA\TaskDocumentController::class, 'download'])->name('tasks.documents.download');
+        Route::get('tasks/{task}/documents/{document}/versions', [App\Http\Controllers\NBA\TaskDocumentController::class, 'versions'])->name('tasks.documents.versions');
+    });
+
     // HOD Routes
     Route::middleware('role:hod')->prefix('hod')->name('hod.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\HOD\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/api/charts', [App\Http\Controllers\HOD\DashboardController::class, 'chartsData'])->name('api.charts');
         Route::get('/api/dashboard-filter', [App\Http\Controllers\HOD\DashboardController::class, 'filterData'])->name('api.filter');
         
+        // Archived tasks & restore
+        Route::get('tasks/archived', [App\Http\Controllers\HOD\TaskController::class, 'archived'])->name('tasks.archived');
+        Route::post('tasks/{task}/restore', [App\Http\Controllers\HOD\TaskController::class, 'restore'])->name('tasks.restore');
+
         Route::resource('tasks', App\Http\Controllers\HOD\TaskController::class);
         
         Route::resource('meetings', App\Http\Controllers\HOD\MeetingController::class);
@@ -44,6 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('faculty/{faculty}/performance', [App\Http\Controllers\HOD\FacultyController::class, 'performance'])->name('faculty.performance');
         
         Route::get('reports', [App\Http\Controllers\HOD\ReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/export/csv', [App\Http\Controllers\HOD\ReportController::class, 'exportCsv'])->name('reports.export');
         Route::get('reports/{task}', [App\Http\Controllers\HOD\ReportController::class, 'show'])->name('reports.show');
 
         // Document review routes
@@ -78,9 +111,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Task Collaborator Routes (accessible to both HOD and Faculty)
+    // Task Collaborator Routes
     Route::post('/tasks/{task}/collaborators', [App\Http\Controllers\TaskCollaboratorController::class, 'store'])->name('tasks.collaborators.store');
     Route::delete('/tasks/{task}/collaborators/{user}', [App\Http\Controllers\TaskCollaboratorController::class, 'destroy'])->name('tasks.collaborators.destroy');
+
+    // Task Comments Routes
+    Route::post('/tasks/{task}/comments', [App\Http\Controllers\TaskCommentController::class, 'store'])->name('tasks.comments.store');
+
+    // Task Checklist / Subtasks Routes
+    Route::post('/tasks/{task}/checklist', [App\Http\Controllers\TaskChecklistController::class, 'store'])->name('tasks.checklist.store');
+    Route::post('/tasks/{task}/checklist/{item}/toggle', [App\Http\Controllers\TaskChecklistController::class, 'toggle'])->name('tasks.checklist.toggle');
+    Route::delete('/tasks/{task}/checklist/{item}', [App\Http\Controllers\TaskChecklistController::class, 'destroy'])->name('tasks.checklist.destroy');
 });
 
 require __DIR__.'/auth.php';

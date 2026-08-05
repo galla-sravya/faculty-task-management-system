@@ -5,13 +5,19 @@ namespace App\Http\Controllers\HOD;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\TaskDocument;
-use App\Models\TaskActivity;
-use App\Models\NotificationLog;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class TaskDocumentController extends Controller
 {
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Review a document: approve, request_changes, or reject.
      */
@@ -27,53 +33,20 @@ class TaskDocumentController extends Controller
         $action = $request->input('action');
 
         $document->update([
-            'review_status'  => $action,
+            'review_status'   => $action,
             'review_comments' => $request->input('review_comments'),
-            'reviewed_by'    => auth()->id(),
-            'reviewed_at'    => now(),
+            'reviewed_by'     => auth()->id(),
+            'reviewed_at'     => now(),
         ]);
 
-        // Map action to human-readable label
-        $actionLabels = [
-            'approved'          => 'approved',
-            'changes_requested' => 'requested changes for',
-            'rejected'          => 'rejected',
-        ];
+        // Centralized notification & activity logging
+        $this->notificationService->notifyDocumentReviewed($task, $document, $action, $request->input('review_comments'));
+        $this->notificationService->updateAutomaticTaskProgress($task, $action === 'approved' ? 'document approval' : 'document review');
 
-        // Activity log
-        $desc = auth()->user()->name . ' ' . $actionLabels[$action] . ' document "' . $document->file_name . '".';
-        if ($request->input('review_comments')) {
-            $desc .= ' Comments: "' . $request->input('review_comments') . '"';
+        // If changes requested, return status to working_on_task
+        if ($action === 'changes_requested') {
+            $task->update(['status' => 'working_on_task']);
         }
-
-        TaskActivity::create([
-            'task_id'     => $task->id,
-            'user_id'     => auth()->id(),
-            'action'      => 'document_' . ($action === 'changes_requested' ? 'changes_requested' : $action),
-            'description' => $desc,
-        ]);
-
-        // Notify the document uploader
-        $notificationType = match ($action) {
-            'approved'          => 'document_approved',
-            'changes_requested' => 'document_changes_requested',
-            'rejected'          => 'document_rejected',
-        };
-
-        $notificationMessage = match ($action) {
-            'approved'          => 'Your document "' . $document->file_name . '" for task "' . $task->title . '" has been approved.',
-            'changes_requested' => 'Changes requested for your document "' . $document->file_name . '" on task "' . $task->title . '". Comments: "' . $request->input('review_comments') . '"',
-            'rejected'          => 'Your document "' . $document->file_name . '" for task "' . $task->title . '" has been rejected. Reason: "' . $request->input('review_comments') . '"',
-        };
-
-        NotificationLog::create([
-            'user_id'        => $document->user_id,
-            'type'           => $notificationType,
-            'reference_id'   => $task->id,
-            'reference_type' => Task::class,
-            'message'        => $notificationMessage,
-            'sent_at'        => now(),
-        ]);
 
         // If all submitted documents for this task are approved, update task status
         if ($action === 'approved') {
@@ -87,8 +60,8 @@ class TaskDocumentController extends Controller
                     ->where('review_status', 'approved')
                     ->count();
 
-                if ($approvedDocs > 0 && $task->status === 'pending_review') {
-                    $task->update(['status' => 'in_progress']);
+                if ($approvedDocs > 0 && in_array($task->status, ['submitted_for_review', 'pending_review'])) {
+                    $task->update(['status' => 'working_on_task']);
                 }
             }
         }
