@@ -80,14 +80,7 @@ php artisan key:generate
 ```
 
 ### 5. Database Setup & Migrations
-Create an empty SQLite database file (if using default SQLite configuration):
-```bash
-# For Windows PowerShell
-New-Item -ItemType File -Path database\database.sqlite -Force
-
-# For Unix/Linux/Mac
-touch database/database.sqlite
-```
+Create a MySQL database in XAMPP first, for example `faculty_task_management`, then update `.env` with your MySQL credentials.
 
 Run database migrations and seeders:
 ```bash
@@ -190,4 +183,4 @@ c:\Project\activity-monitor-main/
 
 1. **Storage Link**: Always ensure `php artisan storage:link` is executed so uploaded document files and profile avatars in `storage/app/public` are accessible via `/storage`.
 2. **Automated Tests**: Comprehensive feature tests exist in `tests/Feature/TaskCollaboratorTest.php` and `tests/Feature/TaskDocumentWorkflowTest.php`. Run `php artisan test` to verify logic integrity before committing new features.
-3. **Database Agnostic**: The application is tested with SQLite and MySQL. Standard Eloquent relationships and query scopes are used throughout.
+3. **MySQL/XAMPP Setup**: The project now defaults to MySQL so a fresh install can run against XAMPP without changing the code first.
