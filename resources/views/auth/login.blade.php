@@ -14,8 +14,8 @@
         <div class="mb-3">
             <label for="email" class="form-label fw-semibold text-dark small">Email Address</label>
             <input id="email" type="email" name="email" class="form-control border @error('email') is-invalid @enderror"
-                   style="border-color: var(--border) !important;" value="{{ old('email') }}" required autofocus autocomplete="username"
-                   placeholder="name@psgitech.ac.in">
+                   style="border-color: var(--border) !important;" required autofocus autocomplete="username"
+                   placeholder="Enter your email address">
             <x-input-error :messages="$errors->get('email')" class="mt-1" />
         </div>
 
@@ -30,7 +30,7 @@
                 @endif
             </div>
             <input id="password" type="password" name="password" class="form-control border @error('password') is-invalid @enderror"
-                   style="border-color: var(--border) !important;" required autocomplete="current-password" placeholder="••••••••">
+                   style="border-color: var(--border) !important;" required autocomplete="current-password" placeholder="Enter your password">
             <x-input-error :messages="$errors->get('password')" class="mt-1" />
         </div>
 
@@ -44,9 +44,40 @@
 
         <!-- Submit Button -->
         <div class="d-grid">
-            <button type="submit" class="btn text-white fw-semibold py-2 shadow-sm" style="background-color: var(--navy);">
+            <button type="submit" class="btn btn-psg-primary w-100 fw-semibold py-2 shadow-sm">
                 <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
             </button>
         </div>
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+
+            function clearLoginErrors() {
+                const errorElements = document.querySelectorAll('.login-error-msg, .invalid-feedback');
+                errorElements.forEach(function (el) {
+                    el.style.display = 'none';
+                });
+                const invalidInputs = document.querySelectorAll('.is-invalid');
+                invalidInputs.forEach(function (el) {
+                    el.classList.remove('is-invalid');
+                });
+            }
+
+            if (emailInput) {
+                emailInput.addEventListener('input', clearLoginErrors);
+            }
+            if (passwordInput) {
+                passwordInput.addEventListener('input', clearLoginErrors);
+            }
+
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) {
+                    clearLoginErrors();
+                }
+            });
+        });
+    </script>
 </x-guest-layout>

@@ -15,7 +15,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <!-- PSG Theme CSS -->
-    @vite(['resources/css/psg-theme.css'])
+    <link rel="stylesheet" href="{{ asset('css/psg-theme.css') }}?v={{ filemtime(public_path('css/psg-theme.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/voice-input.css') }}?v={{ filemtime(public_path('css/voice-input.css')) }}">
 </head>
 <body class="d-flex flex-column align-items-center justify-content-center min-vh-100 py-5 px-3" style="background-color: var(--bg);">
 

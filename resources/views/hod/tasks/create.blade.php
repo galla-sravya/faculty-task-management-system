@@ -12,7 +12,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-12">
         <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
             <div class="card-header bg-white border-bottom py-3">
                 <h6 class="m-0 fw-bold" style="color: var(--navy);">
@@ -77,33 +77,6 @@
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sidebar Help -->
-    <div class="col-lg-4 mt-4 mt-lg-0">
-        <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="m-0 fw-bold" style="color: var(--navy);">
-                    <i class="bi bi-lightbulb me-2" style="color: var(--gold);"></i>Tips
-                </h6>
-            </div>
-            <div class="card-body p-4">
-                <ul class="list-unstyled mb-0 small text-muted">
-                    <li class="mb-3 d-flex align-items-start gap-2">
-                        <i class="bi bi-check-circle text-success mt-1"></i>
-                        <span>Use <strong>clear, concise titles</strong> so faculty know exactly what's expected.</span>
-                    </li>
-                    <li class="mb-3 d-flex align-items-start gap-2">
-                        <i class="bi bi-check-circle text-success mt-1"></i>
-                        <span>Set <strong>realistic deadlines</strong> and use priority levels wisely.</span>
-                    </li>
-                    <li class="d-flex align-items-start gap-2">
-                        <i class="bi bi-check-circle text-success mt-1"></i>
-                        <span>Assigned faculty will receive <strong>email notifications</strong> automatically.</span>
-                    </li>
-                </ul>
             </div>
         </div>
     </div>

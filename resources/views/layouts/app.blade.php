@@ -17,6 +17,9 @@
     <!-- PSG Theme CSS -->
     <link rel="stylesheet" href="{{ asset('css/psg-theme.css') }}?v={{ filemtime(public_path('css/psg-theme.css')) }}">
     
+    <!-- Voice Input CSS -->
+    <link rel="stylesheet" href="{{ asset('css/voice-input.css') }}?v={{ filemtime(public_path('css/voice-input.css')) }}">
+    
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -27,25 +30,88 @@
     <!-- Main Content Wrapper -->
     <div class="psg-content-wrapper" id="psgContentWrapper">
         <main class="w-100 mx-auto px-3 px-md-4 py-4" style="max-width:1400px; min-width:0;">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                    <i class="bi bi-check-circle me-2"></i> {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-            
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                    <i class="bi bi-exclamation-octagon me-2"></i> {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
             @yield('content')
         </main>
     </div>
 
+    <!-- Modern Top-Right Toast Notification Container -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090; max-width: 90vw;">
+        @if(session('success'))
+            @php
+                $isTaskCreated = Str::contains(session('success'), ['Task created', 'task created', 'Task Created', 'NBA Task created']);
+                $toastTitle = $isTaskCreated ? 'Task Created Successfully' : 'Success';
+                $toastMsg = $isTaskCreated 
+                    ? 'The task has been assigned successfully. Notifications have been sent to the selected faculty member(s). If collaborators are selected, they have also been notified.' 
+                    : session('success');
+            @endphp
+            <div id="appSuccessToast" class="toast custom-toast show border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="background: #ffffff; border-radius: 12px; overflow: hidden; min-width: 350px; max-width: 440px; border-left: 5px solid #2e7d32 !important;">
+                <div class="p-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="toast-icon-bg text-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background-color: #e8f5e9 !important;">
+                            <i class="bi bi-check-circle-fill fs-5" style="color: #2e7d32;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">{{ $toastTitle }}</h6>
+                                <button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.75rem;"></button>
+                            </div>
+                            <p class="mb-2 text-secondary small" style="font-size: 0.83rem; line-height: 1.45;">
+                                {{ $toastMsg }}
+                            </p>
+                            @if($isTaskCreated)
+                                <div class="d-flex align-items-center gap-2 mt-2 pt-1">
+                                    <a href="{{ auth()->user()->isHod() ? route('hod.tasks.index') : (auth()->user()->isNbaCoordinator() ? route('nba.tasks.index') : route('faculty.tasks.index')) }}" class="btn btn-sm btn-success px-3 py-1 fw-semibold shadow-sm" style="font-size: 0.78rem; background-color: #2e7d32; border: none;">
+                                        <i class="bi bi-list-task me-1"></i> View Tasks
+                                    </a>
+                                    <a href="{{ auth()->user()->isHod() ? route('hod.tasks.create') : (auth()->user()->isNbaCoordinator() ? route('nba.tasks.create') : '#') }}" class="btn btn-sm btn-outline-secondary px-3 py-1 fw-medium" style="font-size: 0.78rem;">
+                                        <i class="bi bi-plus-circle me-1"></i> Create Another Task
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <!-- Progress Bar -->
+                <div class="toast-progress-bar" style="height: 3.5px; width: 100%; animation: toastProgress 4.5s linear forwards; background-color: #2e7d32 !important;"></div>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div id="appErrorToast" class="toast custom-toast show border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="background: #ffffff; border-radius: 12px; overflow: hidden; min-width: 350px; max-width: 440px; border-left: 5px solid #d32f2f !important;">
+                <div class="p-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="toast-icon-bg text-danger rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background-color: #ffebee !important;">
+                            <i class="bi bi-exclamation-triangle-fill fs-5" style="color: #d32f2f;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Task Could Not Be Created</h6>
+                                <button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.75rem;"></button>
+                            </div>
+                            <p class="mb-0 text-secondary small" style="font-size: 0.83rem; line-height: 1.45;">
+                                {{ session('error') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="toast-progress-bar" style="height: 3.5px; width: 100%; animation: toastProgress 5s linear forwards; background-color: #d32f2f !important;"></div>
+            </div>
+        @endif
+    </div>
+
     <style>
+        .custom-toast {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+            animation: toastFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes toastFadeIn {
+            from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastProgress {
+            from { width: 100%; }
+            to   { width: 0%; }
+        }
         .collapse-icon {
             display: inline-block;
             transition: transform 0.25s ease-in-out;
@@ -60,6 +126,20 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const successToast = document.getElementById('appSuccessToast');
+            if (successToast) {
+                setTimeout(function () {
+                    const bsToast = bootstrap.Toast.getOrCreateInstance(successToast);
+                    bsToast.hide();
+                }, 4500);
+            }
+            const errorToast = document.getElementById('appErrorToast');
+            if (errorToast) {
+                setTimeout(function () {
+                    const bsToast = bootstrap.Toast.getOrCreateInstance(errorToast);
+                    bsToast.hide();
+                }, 5000);
+            }
             document.querySelectorAll('.collapse').forEach(function(el) {
                 if (!el.id) return;
                 const key = 'collapse_state_' + el.id;
@@ -153,6 +233,9 @@
         });
     });
     </script>
+
+    <!-- Voice Input JS (Speech-to-Text for all textareas) -->
+    <script src="{{ asset('js/voice-input.js') }}?v={{ filemtime(public_path('js/voice-input.js')) }}"></script>
 
     @yield('scripts')
 </body>
