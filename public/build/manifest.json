@@ -1,0 +1,26 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-DkYWQxE1.css",
+    "name": "app",
+    "names": [
+      "app.css"
+    ],
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/css/psg-theme.css": {
+    "file": "assets/psg-theme-DpjoGSPq.css",
+    "name": "psg-theme",
+    "names": [
+      "psg-theme.css"
+    ],
+    "src": "resources/css/psg-theme.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-zqGFmKvW.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}

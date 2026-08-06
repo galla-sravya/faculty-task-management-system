@@ -1,0 +1,164 @@
+<?php $__env->startSection('content'); ?>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-3 mb-4 border-bottom" style="border-color: var(--border) !important;">
+    <div>
+        <h1 class="h3 fw-bold mb-1" style="color: var(--navy);">Tasks Management</h1>
+        <p class="text-muted small mb-0">Assign, track and manage faculty tasks</p>
+    </div>
+    <div class="btn-toolbar gap-2 mb-2 mb-md-0">
+        <a href="<?php echo e(route('hod.tasks.create')); ?>" class="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-1" style="background-color: var(--navy);">
+            <i class="bi bi-plus-lg"></i> New Task
+        </a>
+    </div>
+</div>
+
+<div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    <tr>
+                        <th class="ps-4 py-3">Task Title</th>
+                        <th class="py-3">Priority</th>
+                        <th class="py-3">Status</th>
+                        <th class="py-3">Assigned Date</th>
+                        <th class="py-3">Deadline</th>
+                        <th class="py-3">Assignees</th>
+                        <th class="pe-4 py-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $__empty_1 = true; $__currentLoopData = $tasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <tr onclick="window.location='<?php echo e(route('hod.tasks.show', $task)); ?>'" style="cursor: pointer;">
+                        <td class="ps-4">
+                            <a href="<?php echo e(route('hod.tasks.show', $task)); ?>" class="text-decoration-none fw-semibold" style="color: var(--navy);">
+                                <?php echo e($task->title); ?>
+
+                            </a>
+                        </td>
+                        <td>
+                            <?php
+                                $priorityMap = [
+                                    'low'    => ['bg' => '#e8f5e9', 'text' => '#2e7d32', 'label' => 'Low'],
+                                    'medium' => ['bg' => '#fff8e1', 'text' => '#f57f17', 'label' => 'Medium'],
+                                    'high'   => ['bg' => '#fff3e0', 'text' => '#e65100', 'label' => 'High'],
+                                    'urgent' => ['bg' => '#fce4ec', 'text' => '#c62828', 'label' => 'Urgent'],
+                                ];
+                                $p = $priorityMap[$task->priority] ?? $priorityMap['medium'];
+                            ?>
+                            <span class="badge rounded-pill px-3 py-1" style="background-color: <?php echo e($p['bg']); ?>; color: <?php echo e($p['text']); ?>; font-weight: 600; font-size: 0.75rem;">
+                                <?php echo e($p['label']); ?>
+
+                            </span>
+                        </td>
+                        <td>
+                            <?php
+                                $statusMap = [
+                                    'pending'     => ['bg' => '#fff8e1', 'text' => '#f57f17', 'label' => 'Pending'],
+                                    'in_progress' => ['bg' => '#e3f2fd', 'text' => '#1565c0', 'label' => 'In Progress'],
+                                    'completed'   => ['bg' => '#e8f5e9', 'text' => '#2e7d32', 'label' => 'Completed'],
+                                    'overdue'     => ['bg' => '#fce4ec', 'text' => '#c62828', 'label' => 'Overdue'],
+                                ];
+                                $s = $statusMap[$task->status] ?? $statusMap['pending'];
+                            ?>
+                            <span class="badge rounded-pill px-3 py-1" style="background-color: <?php echo e($s['bg']); ?>; color: <?php echo e($s['text']); ?>; font-weight: 600; font-size: 0.75rem;">
+                                <?php echo e($s['label']); ?>
+
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted" style="font-size: 0.85rem;">
+                                <i class="bi bi-calendar-event me-1"></i><?php echo e($task->created_at->format('M d, Y')); ?>
+
+                            </span>
+                        </td>
+                        <td>
+                            <span class="<?php echo e($task->is_overdue ? 'text-danger fw-semibold' : 'text-muted'); ?>" style="font-size: 0.85rem;">
+                                <i class="bi bi-calendar3 me-1"></i><?php echo e($task->deadline->format('M d, Y')); ?>
+
+                                <?php if($task->is_overdue): ?>
+                                    <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue</span>
+                                <?php endif; ?>
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <?php $__currentLoopData = $task->assignees->take(3); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assignee): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <img src="<?php echo e($assignee->profile_photo_url); ?>" alt="<?php echo e($assignee->name); ?>"
+                                         class="rounded-circle shadow-sm object-fit-cover"
+                                         style="width: 32px; height: 32px; margin-left: <?php echo e($loop->first ? '0' : '-8px'); ?>; border: 2px solid #fff; z-index: <?php echo e(10 - $loop->index); ?>;"
+                                         title="<?php echo e($assignee->name); ?>">
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <?php if($task->assignees->count() > 3): ?>
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                                         style="width: 32px; height: 32px; background-color: #e9ecef; color: var(--navy); font-size: 0.65rem; margin-left: -8px; border: 2px solid #fff; z-index: 1;">
+                                        +<?php echo e($task->assignees->count() - 3); ?>
+
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        <td class="pe-4">
+                            <div class="d-inline-flex gap-1" onclick="event.stopPropagation();">
+                                <a href="<?php echo e(route('hod.tasks.show', $task)); ?>" class="btn btn-sm btn-outline-primary fw-medium px-2 py-1" style="font-size: 0.78rem; border-color: var(--navy); color: var(--navy);">
+                                    View
+                                </a>
+                                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('delete', $task)): ?>
+                                <button type="button" class="btn btn-sm btn-outline-warning fw-medium text-dark px-2 py-1" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#archiveModal<?php echo e($task->id); ?>">
+                                    Archive
+                                </button>
+                                <!-- Modal for this task -->
+                                <div class="modal fade" id="archiveModal<?php echo e($task->id); ?>" tabindex="-1" aria-hidden="true" onclick="event.stopPropagation();">
+                                    <div class="modal-dialog modal-dialog-centered text-start">
+                                        <div class="modal-content border-0 shadow">
+                                            <div class="modal-header bg-light border-bottom">
+                                                <h5 class="modal-title fw-bold text-navy">
+                                                    <i class="bi bi-archive me-2 text-warning"></i>Archive Task?
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <p class="mb-0 text-secondary" style="font-size:0.92rem; line-height:1.6;">
+                                                    This task contains progress, documents, comments, collaborators and history.<br><br>
+                                                    Archiving will remove it from active dashboards but preserve all records.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer bg-light border-top">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                                                <form action="<?php echo e(route('hod.tasks.destroy', $task)); ?>" method="POST" class="d-inline">
+                                                    <?php echo csrf_field(); ?>
+                                                    <?php echo method_field('DELETE'); ?>
+                                                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold px-3">
+                                                        <i class="bi bi-archive me-1"></i>Archive Task
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-clipboard-x fs-2 d-block mb-2 text-secondary"></i>
+                            No tasks found. Create one!
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <?php if($tasks->hasPages()): ?>
+        <div class="px-4 py-3 border-top" style="border-color: var(--border) !important;">
+            <?php echo e($tasks->links('pagination::bootstrap-5')); ?>
+
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Project\activity-monitor-main\resources\views/hod/tasks/index.blade.php ENDPATH**/ ?>
