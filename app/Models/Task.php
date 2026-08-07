@@ -15,8 +15,7 @@ class Task extends Model
     use SoftDeletes;
     protected $fillable = [
         'title', 'description', 'created_by', 'owner_role', 'department_id', 'meeting_id',
-        'priority', 'category', 'status', 'deadline', 'reminder_48h_sent_at', 'reminder_12h_sent_at', 'reminder_2h_sent_at',
-        'deadline_day_morning_sent_at', 'deadline_day_evening_sent_at',
+        'priority', 'category', 'status', 'deadline', 'reminder_50pct_sent_at', 'reminder_75pct_sent_at',
     ];
 
     protected static function booted(): void
@@ -30,11 +29,8 @@ class Task extends Model
 
     protected $casts = [
         'deadline' => 'datetime',
-        'reminder_48h_sent_at' => 'datetime',
-        'reminder_12h_sent_at' => 'datetime',
-        'reminder_2h_sent_at' => 'datetime',
-        'deadline_day_morning_sent_at' => 'datetime',
-        'deadline_day_evening_sent_at' => 'datetime',
+        'reminder_50pct_sent_at' => 'datetime',
+        'reminder_75pct_sent_at' => 'datetime',
     ];
 
     public function creator(): BelongsTo

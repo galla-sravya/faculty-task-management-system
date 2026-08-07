@@ -35,6 +35,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('global.search');
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar.index');
 
+    // Smart task redirect — works for any role (used in email links)
+    Route::get('/tasks/{task}/view', function (App\Models\Task $task) {
+        $user = auth()->user();
+        if ($user->isHod()) {
+            return redirect()->route('hod.tasks.show', $task);
+        }
+        if ($user->isNbaCoordinator()) {
+            return redirect()->route('nba.tasks.show', $task);
+        }
+        return redirect()->route('faculty.tasks.show', $task);
+    })->name('tasks.view');
+
     // NBA Coordinator Routes
     Route::middleware('role:nba_coordinator')->prefix('nba')->name('nba.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\NBA\DashboardController::class, 'index'])->name('dashboard');
