@@ -19,7 +19,7 @@ class DeadlineReminder extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(Task $task, string $stage = '48h')
+    public function __construct(Task $task, string $stage = '50pct')
     {
         $this->task = $task;
         $this->stage = $stage;
@@ -31,9 +31,9 @@ class DeadlineReminder extends Mailable
     public function envelope(): Envelope
     {
         $subject = match ($this->stage) {
-            'morning' => 'Morning Reminder: Task "' . $this->task->title . '" is due today',
-            'evening' => 'Evening Reminder: Task "' . $this->task->title . '" is due today',
-            default => 'Reminder: Task "' . $this->task->title . '" is due in 48 hours',
+            '75pct' => 'Time Running Out: "' . $this->task->title . '" — 75% of your time is used, deadline approaching',
+            '50pct' => 'Halfway There: "' . $this->task->title . '" — 50% of your time is used',
+            default => 'Reminder: Task "' . $this->task->title . '" deadline reminder',
         };
 
         return new Envelope(

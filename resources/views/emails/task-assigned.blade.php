@@ -12,7 +12,7 @@ You have been assigned a new task by your Head of Department.
 {{ $task->description }}
 @endif
 
-<x-mail::button :url="route('faculty.tasks.show', $task)">
+<x-mail::button :url="route('tasks.view', $task)">
 View Task & Update Progress
 </x-mail::button>
 
