@@ -501,3 +501,91 @@ body.sidebar-collapsed .sidebar-link.active::before,
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06) !important;
     border-color: #d0d5dd !important;
 }
+
+/* ── Inline Header Filter Dropdowns ── */
+.th-filter-header {
+    transition: background-color 0.15s ease;
+}
+.th-filter-header:hover {
+    background-color: rgba(18, 39, 90, 0.06) !important;
+}
+.th-filter-header .th-filter-label {
+    display: inline-block;
+    transition: color 0.15s ease;
+}
+.th-filter-active {
+    background-color: rgba(18, 39, 90, 0.08) !important;
+}
+.th-filter-active .th-filter-label {
+    color: var(--navy, #12275a) !important;
+    font-weight: 700 !important;
+}
+.th-filter-active .th-filter-label::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--navy, #12275a);
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Dropdown panel */
+.th-inline-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1060;
+    min-width: 200px;
+    max-width: 260px;
+    background: #fff;
+    border: 1px solid #dce3eb;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
+    padding: 0;
+    margin-top: 4px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+}
+.th-inline-dropdown.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+.th-dropdown-inner {
+    padding: 12px 14px;
+}
+.th-dropdown-title {
+    font-size: 0.70rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--navy, #12275a);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eef1f5;
+}
+.th-dropdown-inner .form-select,
+.th-dropdown-inner .form-control {
+    font-size: 0.82rem;
+    border-radius: 6px;
+    border-color: #dce3eb;
+}
+.th-dropdown-inner .form-select:focus,
+.th-dropdown-inner .form-control:focus {
+    border-color: var(--navy, #12275a);
+    box-shadow: 0 0 0 2px rgba(18, 39, 90, 0.12);
+}
+
+/* Table responsive container maintains normal Bootstrap responsive scroll */
+.task-table-wrapper .table-responsive {
+    position: relative;
+    border-radius: var(--radius, 8px);
+}
+
+

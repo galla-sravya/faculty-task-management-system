@@ -11,6 +11,15 @@ class TaskSeeder extends Seeder
 {
     public function run(): void
     {
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+        \App\Models\TaskChecklistItem::truncate();
+        \App\Models\TaskActivity::truncate();
+        \App\Models\TaskAuditLog::truncate();
+        \App\Models\TaskDocument::truncate();
+        \Illuminate\Support\Facades\DB::table('task_user')->truncate();
+        Task::truncate();
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
         $hod = User::where('role', 'hod')->first();
         $faculties = User::where('role', 'faculty')->get();
         $departmentId = $hod ? $hod->department_id : 1;
@@ -157,6 +166,79 @@ class TaskSeeder extends Seeder
                 'status' => 'pending',
                 'progress_percentage' => 0,
                 'remarks' => null,
+            ]);
+
+            // Add sample subtasks for work division
+            \App\Models\TaskChecklistItem::create([
+                'task_id' => $timelineTask->id,
+                'title' => 'Final documentation must be submitted for HOD review',
+                'description' => 'Ensure all citations and IEEE format guidelines are verified.',
+                'created_by' => $createdById,
+                'created_by_role' => 'hod',
+                'assigned_to' => null, // Shared / Both
+                'status' => 'pending',
+                'is_completed' => false,
+            ]);
+
+            \App\Models\TaskChecklistItem::create([
+                'task_id' => $timelineTask->id,
+                'title' => 'Collect previous paper submissions and references',
+                'description' => 'Gather PDFs from repository.',
+                'created_by' => $timelineFaculties[0]->id,
+                'created_by_role' => 'faculty',
+                'assigned_to' => $timelineFaculties[0]->id,
+                'status' => 'completed',
+                'is_completed' => true,
+                'completed_by' => $timelineFaculties[0]->id,
+                'completed_at' => Carbon::now()->subHours(5),
+            ]);
+
+            \App\Models\TaskChecklistItem::create([
+                'task_id' => $timelineTask->id,
+                'title' => 'Verify methodology and experimental results',
+                'description' => 'Check graph figures and statistical consistency.',
+                'created_by' => $timelineFaculties[0]->id,
+                'created_by_role' => 'faculty',
+                'assigned_to' => $timelineFaculties[1]->id,
+                'status' => 'in_progress',
+                'is_completed' => false,
+            ]);
+        }
+
+        // Also add checklist items for task ID 1 if available
+        $firstTask = Task::first();
+        if ($firstTask && $faculties->count() >= 2) {
+            \App\Models\TaskChecklistItem::create([
+                'task_id' => $firstTask->id,
+                'title' => 'Submit final syllabus document for HOD approval',
+                'description' => 'Mandatory HOD requirement prior to semester start.',
+                'created_by' => $createdById,
+                'created_by_role' => 'hod',
+                'assigned_to' => null,
+                'status' => 'pending',
+                'is_completed' => false,
+            ]);
+
+            \App\Models\TaskChecklistItem::create([
+                'task_id' => $firstTask->id,
+                'title' => 'Collect syllabus requirements from syllabus committee',
+                'description' => 'Work item assigned by Dr. R. Manimegalai.',
+                'created_by' => $faculties[0]->id,
+                'created_by_role' => 'faculty',
+                'assigned_to' => $faculties[0]->id,
+                'status' => 'in_progress',
+                'is_completed' => false,
+            ]);
+
+            \App\Models\TaskChecklistItem::create([
+                'task_id' => $firstTask->id,
+                'title' => 'Update reference books and online resource links',
+                'description' => 'Assigned to Dr. S. Kalarani.',
+                'created_by' => $faculties[0]->id,
+                'created_by_role' => 'faculty',
+                'assigned_to' => $faculties[1]->id,
+                'status' => 'pending',
+                'is_completed' => false,
             ]);
         }
     }

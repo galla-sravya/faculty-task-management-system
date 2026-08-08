@@ -109,7 +109,7 @@ class TaskController extends Controller
     {
         $task = Task::withTrashed()->findOrFail($id);
         $this->authorize('view', $task);
-        $task->load(['creator', 'meeting', 'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at')]);
+        $task->load(['creator', 'meeting', 'checklistItems.creator', 'checklistItems.assignee', 'checklistItems.completedByUser', 'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at')]);
 
         $allTaskDocuments = \App\Models\TaskDocument::where('task_id', $task->id)
             ->with(['user', 'reviewer'])

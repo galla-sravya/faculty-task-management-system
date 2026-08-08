@@ -37,8 +37,10 @@ class DashboardController extends Controller
             ->get();
 
         $upcomingDeadlines = Task::where('department_id', $departmentId)
-            ->pending()
-            ->orWhere('status', 'in_progress')
+            ->where(function ($q) {
+                $q->where('status', 'pending')
+                  ->orWhere('status', 'in_progress');
+            })
             ->orderBy('deadline', 'asc')
             ->take(5)
             ->get();
@@ -145,6 +147,7 @@ class DashboardController extends Controller
                 'deadline'         => $task->deadline->format('M d, Y'),
                 'duration_days'    => $task->duration_in_days,
                 'is_overdue'       => $task->is_overdue,
+                'smart_deadline'   => $task->smart_deadline,
                 'category'         => $task->category ?? 'General',
                 'overall_progress' => $task->overall_progress,
                 'show_url'         => route('hod.tasks.show', $task),

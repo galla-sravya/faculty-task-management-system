@@ -120,6 +120,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Task Checklist / Subtasks Routes
     Route::post('/tasks/{task}/checklist', [App\Http\Controllers\TaskChecklistController::class, 'store'])->name('tasks.checklist.store');
+    Route::put('/tasks/{task}/checklist/{item}', [App\Http\Controllers\TaskChecklistController::class, 'update'])->name('tasks.checklist.update');
+    Route::patch('/tasks/{task}/checklist/{item}/status', [App\Http\Controllers\TaskChecklistController::class, 'updateStatus'])->name('tasks.checklist.updateStatus');
     Route::post('/tasks/{task}/checklist/{item}/toggle', [App\Http\Controllers\TaskChecklistController::class, 'toggle'])->name('tasks.checklist.toggle');
     Route::delete('/tasks/{task}/checklist/{item}', [App\Http\Controllers\TaskChecklistController::class, 'destroy'])->name('tasks.checklist.destroy');
 });

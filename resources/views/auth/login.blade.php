@@ -29,8 +29,14 @@
                     </a>
                 @endif
             </div>
-            <input id="password" type="password" name="password" class="form-control border @error('password') is-invalid @enderror"
-                   style="border-color: var(--border) !important;" required autocomplete="current-password" placeholder="Enter your password">
+            <div class="position-relative">
+                <input id="password" type="password" name="password" class="form-control border pe-5 @error('password') is-invalid @enderror"
+                       style="border-color: var(--border) !important;" required autocomplete="current-password" placeholder="Enter your password">
+                <button type="button" id="togglePassword" class="btn btn-link p-0 position-absolute end-0 top-50 translate-middle-y me-3 text-secondary text-decoration-none"
+                        aria-label="Show password" style="border: none; background: transparent; z-index: 10; cursor: pointer;">
+                    <i class="bi bi-eye" id="togglePasswordIcon" style="font-size: 1.1rem; transition: color 0.15s ease;"></i>
+                </button>
+            </div>
             <x-input-error :messages="$errors->get('password')" class="mt-1" />
         </div>
 
@@ -54,6 +60,8 @@
         document.addEventListener('DOMContentLoaded', function () {
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
+            const togglePassword = document.getElementById('togglePassword');
+            const togglePasswordIcon = document.getElementById('togglePasswordIcon');
 
             function clearLoginErrors() {
                 const errorElements = document.querySelectorAll('.login-error-msg, .invalid-feedback');
@@ -71,6 +79,44 @@
             }
             if (passwordInput) {
                 passwordInput.addEventListener('input', clearLoginErrors);
+            }
+
+            if (togglePassword && passwordInput && togglePasswordIcon) {
+                togglePassword.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const start = passwordInput.selectionStart;
+                    const end = passwordInput.selectionEnd;
+                    const isPassword = passwordInput.getAttribute('type') === 'password';
+
+                    passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+
+                    if (isPassword) {
+                        togglePasswordIcon.className = 'bi bi-eye-slash text-navy';
+                        togglePassword.setAttribute('aria-label', 'Hide password');
+                    } else {
+                        togglePasswordIcon.className = 'bi bi-eye text-secondary';
+                        togglePassword.setAttribute('aria-label', 'Show password');
+                    }
+
+                    passwordInput.focus();
+                    if (start !== null && end !== null) {
+                        passwordInput.setSelectionRange(start, end);
+                    }
+                });
+
+                togglePassword.addEventListener('mouseenter', function() {
+                    if (passwordInput.getAttribute('type') === 'password') {
+                        togglePasswordIcon.classList.add('text-navy');
+                        togglePasswordIcon.classList.remove('text-secondary');
+                    }
+                });
+
+                togglePassword.addEventListener('mouseleave', function() {
+                    if (passwordInput.getAttribute('type') === 'password') {
+                        togglePasswordIcon.classList.remove('text-navy');
+                        togglePasswordIcon.classList.add('text-secondary');
+                    }
+                });
             }
 
             window.addEventListener('pageshow', function (event) {

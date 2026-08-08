@@ -13,72 +13,43 @@
     </div>
 </div>
 
-<!-- Search & Filter Card -->
-<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
-    <div class="card-body p-3">
-        <form method="GET" action="{{ route('hod.tasks.archived') }}" class="row g-2 align-items-center">
-            <div class="col-md-5">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search archived task name, category, faculty..." value="{{ request('search') }}">
-                </div>
-            </div>
-            <div class="col-md-3">
-                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Statuses</option>
-                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="in_progress" {{ request('status') === 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                    <option value="pending_review" {{ request('status') === 'pending_review' ? 'selected' : '' }}>Pending Review</option>
-                    <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Priorities</option>
-                    <option value="low" {{ request('priority') === 'low' ? 'selected' : '' }}>Low</option>
-                    <option value="medium" {{ request('priority') === 'medium' ? 'selected' : '' }}>Medium</option>
-                    <option value="high" {{ request('priority') === 'high' ? 'selected' : '' }}>High</option>
-                    <option value="urgent" {{ request('priority') === 'urgent' ? 'selected' : '' }}>Urgent</option>
-                </select>
-            </div>
-            <div class="col-md-1 d-flex justify-content-end">
-                @if(request()->anyFilled(['search', 'status', 'priority']))
-                    <a href="{{ route('hod.tasks.archived') }}" class="btn btn-sm btn-light border text-muted" title="Reset Filters"><i class="bi bi-x-circle"></i></a>
-                @else
-                    <button type="submit" class="btn btn-sm btn-psg-primary w-100">Filter</button>
-                @endif
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                    <tr>
-                        <th class="ps-3 py-3">Task Name</th>
-                        <th class="py-3">Assigned Faculty</th>
-                        <th class="py-3">Assigned Date</th>
-                        <th class="py-3">Archived Date</th>
-                        <th class="py-3">Archived By</th>
-                        <th class="py-3">Status Before Archive</th>
-                        <th class="pe-3 py-3 text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($archivedTasks as $task)
-                    @php
-                        $statusMap = [
-                            'pending'        => ['bg' => '#fff8e1', 'text' => '#f57f17', 'label' => 'Pending'],
-                            'in_progress'    => ['bg' => '#e3f2fd', 'text' => '#1565c0', 'label' => 'In Progress'],
-                            'pending_review' => ['bg' => '#f3e5f5', 'text' => '#7b1fa2', 'label' => 'Pending Review'],
-                            'completed'      => ['bg' => '#e8f5e9', 'text' => '#2e7d32', 'label' => 'Completed'],
-                        ];
-                        $st = $statusMap[$task->status] ?? $statusMap['pending'];
-                    @endphp
-                    <tr>
+<div class="task-table-wrapper">
+    <x-task-table-filters />
+    <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <tr>
+                            <th class="ps-3 py-3" data-filter-col="title">Task Name</th>
+                            <th class="py-3" data-filter-col="faculty">Assigned Faculty</th>
+                            <th class="py-3" data-filter-col="assigned_date">Assigned Date</th>
+                            <th class="py-3">Archived Date</th>
+                            <th class="py-3">Archived By</th>
+                            <th class="py-3" data-filter-col="status">Status Before Archive</th>
+                            <th class="pe-3 py-3 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($archivedTasks as $task)
+                        @php
+                            $statusMap = [
+                                'pending'        => ['bg' => '#fff8e1', 'text' => '#f57f17', 'label' => 'Pending'],
+                                'in_progress'    => ['bg' => '#e3f2fd', 'text' => '#1565c0', 'label' => 'In Progress'],
+                                'pending_review' => ['bg' => '#f3e5f5', 'text' => '#7b1fa2', 'label' => 'Pending Review'],
+                                'completed'      => ['bg' => '#e8f5e9', 'text' => '#2e7d32', 'label' => 'Completed'],
+                            ];
+                            $st = $statusMap[$task->status] ?? $statusMap['pending'];
+                        @endphp
+                        <tr data-task-row
+                            data-title="{{ $task->title }}"
+                            data-priority="{{ $task->priority }}"
+                            data-status="{{ $task->status }}"
+                            data-assigned-date="{{ $task->created_at->format('Y-m-d') }}"
+                            data-deadline-date="{{ $task->deadline ? $task->deadline->format('Y-m-d') : '' }}"
+                            data-deadline-status="{{ $task->smart_deadline['type'] }}"
+                            data-faculty="{{ $task->assignees ? $task->assignees->pluck('name')->implode(', ') : '' }}"
+                            data-category="{{ $task->category ?? '' }}">
                         <td class="ps-3">
                             <a href="{{ route('hod.tasks.show', $task->id) }}" class="fw-semibold text-navy text-decoration-none">
                                 {{ $task->title }}
@@ -142,4 +113,5 @@
         {{ $archivedTasks->links() }}
     </div>
 @endif
+</div>
 @endsection

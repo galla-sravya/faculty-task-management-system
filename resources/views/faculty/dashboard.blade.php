@@ -93,12 +93,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="{{ $task->deadline->isPast() ? 'text-danger fw-semibold' : ($task->deadline->diffInDays(now()) < 3 ? 'text-warning fw-semibold' : 'text-muted') }}" style="font-size:0.82rem;">
-                                        <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y H:i') }}
-                                        @if($task->deadline->isPast())
-                                            <span class="badge bg-danger ms-1" style="font-size: 0.65rem;">Overdue</span>
-                                        @endif
-                                    </span>
+                                    <x-task-deadline-badge :task="$task" />
                                 </td>
                                 <td class="pe-4">
                                     <a href="{{ route('faculty.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary fw-medium px-3" style="font-size: 0.8rem; border-color: var(--navy); color: var(--navy);" onclick="event.stopPropagation();">

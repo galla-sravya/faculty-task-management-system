@@ -16,6 +16,30 @@
     $p = $priorityMap[$task->priority] ?? $priorityMap['medium'];
 @endphp
 
+@if(session('success'))
+<div id="successToastPopup" class="position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg rounded-3 p-3 bg-white border border-success d-flex align-items-center gap-3"
+     style="z-index: 1090; min-width: 320px; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;">
+    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+        <i class="bi bi-check-lg fs-4"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold text-dark small">Update Saved</div>
+        <div class="text-secondary small" style="font-size: 0.83rem; line-height: 1.35;">{{ session('success') }}</div>
+    </div>
+    <button type="button" class="btn-close ms-2 small" onclick="document.getElementById('successToastPopup').remove()"></button>
+</div>
+<script>
+    setTimeout(function() {
+        const toast = document.getElementById('successToastPopup');
+        if (toast) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => toast.remove(), 400);
+        }
+    }, 4000);
+</script>
+@endif
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-3 mb-4 border-bottom" style="border-color: var(--border) !important;">
     <div>
         <h1 class="h3 fw-bold mb-1" style="color: var(--navy);">Update Task Progress</h1>
@@ -138,46 +162,75 @@
                 <form action="{{ route('faculty.tasks.updateProgress', $task) }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
-                    <!-- Automated Read-Only Progress Display -->
+                    <!-- Interactive Progress Slider -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-1">
-                            <span>Current Progress <span class="badge bg-light text-muted border fw-normal ms-1" style="font-size:0.72rem;">Calculated Automatically</span></span>
-                            <span class="badge rounded-pill px-3 py-2" style="background-color: var(--navy); color: #fff; font-size: 0.9rem;">{{ $task->overall_progress }}%</span>
-                        </label>
-
-                        <div class="progress mt-2" style="height: 14px; background-color: #e9ecef; border-radius: 6px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
-                                 style="width: {{ $task->overall_progress }}%; background-color: var(--navy); border-radius: 6px; transition: width 0.3s ease;">
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="progressRange" class="form-label fw-semibold text-dark mb-0">
+                                <span>My Progress</span>
+                            </label>
+                            <span class="badge rounded-pill px-3 py-1.5 fw-bold" id="progressValBadge" style="background-color: var(--navy); color: #fff; font-size: 0.95rem;">
+                                {{ $pivot->progress_percentage ?? 0 }}%
+                            </span>
                         </div>
 
-                        <div class="text-muted mt-2 d-flex align-items-center gap-1.5" style="font-size: 0.78rem;" data-bs-toggle="tooltip" title="Progress is automatically calculated based on completed task activities.">
-                            <i class="bi bi-info-circle text-primary"></i>
-                            <span>Progress is automatically calculated based on completed task activities.</span>
+                        <div class="position-relative pt-4 pb-2 px-1">
+                            <!-- Floating Tooltip above slider thumb -->
+                            <div id="sliderTooltip" class="position-absolute bg-dark text-white rounded-pill px-2.5 py-1 text-nowrap shadow-sm fw-medium"
+                                 style="top: -6px; transform: translateX(-50%); font-size: 0.72rem; transition: left 0.05s ease, opacity 0.15s ease; opacity: 0; pointer-events: none; z-index: 10;">
+                                <span id="tooltipText">0% - Not Started</span>
+                            </div>
+
+                            <input type="range" class="psg-navy-slider" id="progressRange" min="0" max="100" step="1"
+                                   value="{{ $pivot->progress_percentage ?? 0 }}" style="cursor: pointer;">
                         </div>
                     </div>
 
+                    <!-- Read-Only Workflow Stage Display -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-2">
                             <span>Workflow Stage</span>
-                            @php $stBadge = $task->status_badge_details; @endphp
-                            <span class="badge rounded-pill px-3 py-1.5 fw-semibold {{ $stBadge['class'] ?? '' }}" style="{{ $stBadge['style'] ?? '' }} font-size: 0.78rem;">
-                                {{ $stBadge['label'] }}
+                            <span id="workflowBadge" class="badge rounded-pill px-3 py-1.5 fw-semibold bg-secondary text-white" style="font-size: 0.78rem;">
+                                Not Started
                             </span>
                         </label>
-                        <select name="status" id="statusSelect" class="form-select border rounded-3 py-2 px-3" style="border-color: var(--border) !important; font-size: 0.88rem; font-weight: 500;">
-                            <option value="not_started" {{ in_array($pivot->status, ['not_started', 'pending']) ? 'selected' : '' }}>Not Started</option>
-                            <option value="collecting_resources" {{ $pivot->status === 'collecting_resources' ? 'selected' : '' }}>Collecting Resources</option>
-                            <option value="working_on_task" {{ in_array($pivot->status, ['working_on_task', 'in_progress']) ? 'selected' : '' }}>Working on Task</option>
-                            <option value="documents_uploaded" {{ $pivot->status === 'documents_uploaded' ? 'selected' : '' }}>Supporting Documents Uploaded</option>
-                            <option value="checklist_completed" {{ $pivot->status === 'checklist_completed' ? 'selected' : '' }}>Checklist Completed</option>
-                            <option value="submitted_for_review" {{ in_array($pivot->status, ['submitted_for_review', 'pending_review']) ? 'selected' : '' }}>Submitted for Review</option>
-                        </select>
+                        <input type="hidden" name="progress_percentage" id="progressInput" value="{{ $pivot->progress_percentage ?? 0 }}">
+                        <input type="hidden" name="status" id="statusInput" value="{{ $pivot->status ?? 'not_started' }}">
+                        
+                        <div class="form-control bg-light border-0 py-2 px-3 text-dark d-flex align-items-center justify-content-between" style="font-size: 0.88rem; font-weight: 500;">
+                            <span id="workflowStageLabel">Not Started</span>
+                        </div>
                     </div>
 
+                    <!-- Remarks / Notes -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold text-dark">Remarks / Notes</label>
-                        <textarea name="remarks" class="form-control border" style="border-color: var(--border) !important;" rows="3" placeholder="Any updates for the HOD?">{{ $pivot->remarks }}</textarea>
+                        <textarea name="remarks" id="remarksTextarea" class="form-control border" style="border-color: var(--border) !important;" rows="3" placeholder="Any updates for the HOD?">{{ $pivot->remarks }}</textarea>
+                    </div>
+
+                    <!-- Supporting Document Upload / Replacement -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-1">
+                            <span>Supporting Document</span>
+                            @if(isset($myLatestDoc) && $myLatestDoc)
+                                <span class="badge bg-light text-primary border fw-normal" style="font-size:0.72rem;" title="{{ $myLatestDoc->file_name }}">
+                                    <i class="bi bi-file-earmark-check me-1"></i>Current: {{ Str::limit($myLatestDoc->file_name, 20) }} (v{{ $myLatestDoc->version }})
+                                </span>
+                            @endif
+                        </label>
+
+                        <div class="input-group">
+                            <input type="file" name="document" class="form-control border" id="supportingDocInput"
+                                   style="border-color: var(--border) !important; font-size: 0.85rem;"
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
+                            @if(isset($myLatestDoc) && $myLatestDoc)
+                                <span class="input-group-text bg-light text-secondary small border" style="border-color: var(--border) !important; font-size: 0.78rem;">
+                                    Replace v{{ $myLatestDoc->version }}
+                                </span>
+                            @endif
+                        </div>
+                        <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>{{ isset($myLatestDoc) && $myLatestDoc ? 'Uploading a new file will update the document to v' . ($myLatestDoc->version + 1) . '.' : 'Optional: Upload a supporting document (PDF, DOCX, XLSX, PNG, Max 10MB).' }}
+                        </small>
                     </div>
 
                     <div class="d-grid">
@@ -190,151 +243,6 @@
         </div>
     </div>
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- TASK SUBTASKS / CHECKLIST SECTION                             -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<div class="card bg-white shadow-sm border-0 mt-4 mb-4" style="border-radius: var(--radius, 8px);">
-    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
-        <h6 class="m-0 fw-bold" style="color: var(--navy);">
-            <i class="bi bi-card-checklist me-2" style="color: var(--gold);"></i>Subtasks & Checklist
-        </h6>
-        @php $items = $task->checklistItems; @endphp
-        @if($items->isNotEmpty())
-            <span class="badge bg-light text-dark border" style="font-size:0.75rem;">
-                {{ $items->where('is_completed', true)->count() }} / {{ $items->count() }} Completed
-            </span>
-        @endif
-    </div>
-    <div class="card-body p-4">
-        <!-- Checklist Items List -->
-        <div class="list-group list-group-flush">
-            @forelse($items as $item)
-                <div class="list-group-item px-2 py-2.5 border-bottom d-flex align-items-center justify-content-between">
-                    <form action="{{ route('tasks.checklist.toggle', [$task, $item]) }}" method="POST" class="d-flex align-items-center gap-2 flex-grow-1">
-                        @csrf
-                        <input type="checkbox" class="form-check-input mt-0" onchange="this.form.submit()" {{ $item->is_completed ? 'checked' : '' }} style="cursor:pointer;width:18px;height:18px;">
-                        <span class="{{ $item->is_completed ? 'text-decoration-line-through text-muted' : 'text-dark fw-medium' }}" style="font-size:0.88rem;">
-                            {{ $item->title }}
-                        </span>
-                        @if($item->is_completed && $item->completedByUser)
-                            <span class="badge bg-light text-muted border ms-2" style="font-size:0.65rem;">Done by {{ $item->completedByUser->name }}</span>
-                        @endif
-                    </form>
-                </div>
-            @empty
-                <div class="text-center py-3 text-muted small">No subtasks assigned yet.</div>
-            @endforelse
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- DISCUSSION & COMMENTS SECTION                                 -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
-    <div class="card-header bg-white border-bottom py-3">
-        <h6 class="m-0 fw-bold" style="color: var(--navy);">
-            <i class="bi bi-chat-dots me-2" style="color: var(--maroon);"></i>Task Discussion & Comments
-        </h6>
-    </div>
-    <div class="card-body p-4">
-        <!-- Post Comment Form -->
-        <form action="{{ route('tasks.comments.store', $task) }}" method="POST" enctype="multipart/form-data" class="mb-4">
-            @csrf
-            <div class="mb-2">
-                <textarea name="comment" class="form-control border" rows="3" placeholder="Write a comment or update for the HOD..." required style="font-size:0.88rem;"></textarea>
-            </div>
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <input type="file" name="attachment" class="form-control form-control-sm border" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
-                </div>
-                <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm px-4" style="background-color: var(--navy);">
-                    <i class="bi bi-send me-1"></i>Post Comment
-                </button>
-            </div>
-        </form>
-
-        <!-- Comments List -->
-        <div class="list-group list-group-flush">
-            @forelse($task->comments as $comment)
-                <div class="list-group-item px-0 py-3 border-bottom">
-                    <div class="d-flex align-items-start gap-2.5">
-                        <img src="{{ $comment->user->profile_photo_url }}" class="rounded-circle shadow-sm" style="width:32px;height:32px;object-fit:cover;border:1px solid var(--navy);">
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-semibold text-dark" style="font-size:0.85rem;">{{ $comment->user->name }}</span>
-                                <span class="text-muted small" style="font-size:0.72rem;">{{ $comment->created_at->diffForHumans() }}</span>
-                            </div>
-                            <div class="text-dark" style="font-size:0.85rem;">{{ $comment->comment }}</div>
-                            @if($comment->attachment_path)
-                                <div class="mt-2">
-                                    <a href="{{ Storage::url($comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
-                                        <i class="bi bi-paperclip text-primary"></i> {{ $comment->attachment_name ?? 'Attachment' }}
-                                    </a>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="text-center py-3 text-muted small">No comments posted yet.</div>
-            @endforelse
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- AUDIT HISTORY TAB / SECTION (Collapsible)                     -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
-    <div class="card-header bg-white border-bottom py-3 cursor-pointer" 
-         data-bs-toggle="collapse" 
-         data-bs-target="#facultyAuditHistoryCollapse" 
-         aria-expanded="false" 
-         aria-controls="facultyAuditHistoryCollapse"
-         style="cursor: pointer;">
-        <div class="d-flex align-items-center justify-content-between">
-            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
-                <i class="bi bi-chevron-right collapse-icon text-muted" style="transition: transform 0.25s ease;"></i>
-                <i class="bi bi-journal-text me-1" style="color: var(--navy);"></i>
-                <span>Audit History</span>
-                <span class="text-muted fw-normal" style="font-size: 0.85rem;">({{ $task->auditLogs->count() }} {{ Str::plural('Change', $task->auditLogs->count()) }})</span>
-            </h6>
-            <span class="badge bg-light text-secondary border px-2.5 py-1 small fw-normal">Click to expand</span>
-        </div>
-    </div>
-    <div class="collapse" id="facultyAuditHistoryCollapse">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.7rem;">
-                        <tr>
-                            <th class="ps-3 py-2.5">Date & Time</th>
-                            <th class="py-2.5">Changed By</th>
-                            <th class="py-2.5">Field Changed</th>
-                            <th class="py-2.5">Old Value</th>
-                            <th class="pe-3 py-2.5">New Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($task->auditLogs as $log)
-                        <tr>
-                            <td class="ps-3 text-nowrap small text-muted">{{ $log->created_at->format('M d, Y g:i A') }}</td>
-                            <td class="fw-semibold text-dark" style="font-size:0.82rem;">{{ $log->user->name ?? 'System' }}</td>
-                            <td><span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ $log->formatted_field_name }}</span></td>
-                            <td class="small text-muted" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $log->old_value ?? '—' }}</td>
-                            <td class="pe-3 small text-dark fw-medium" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $log->new_value ?? '—' }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="5" class="text-center py-3 text-muted small">No audit modifications recorded yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- SHARED WORKSPACE DOCUMENTS MANAGEMENT SECTION                  -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="card bg-white shadow-sm border-0 mt-4" style="border-radius: var(--radius, 8px);">
@@ -343,55 +251,29 @@
             <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
                 <i class="bi bi-folder2-open" style="color: var(--gold); font-size: 1.2rem;"></i>Shared Workspace Documents
             </h6>
-            <span class="text-muted small" style="font-size:0.75rem;">Documents uploaded by all assigned faculty collaborators</span>
+            <span class="text-muted small" style="font-size:0.75rem;">Document repository for all assigned task collaborators</span>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            @if(isset($latestDocuments) && $latestDocuments->where('user_id', auth()->id())->where('review_status', 'draft')->count() > 0)
-                <form action="{{ route('faculty.tasks.documents.submit', $task) }}" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-sm fw-medium text-white shadow-sm" style="background-color: var(--navy); font-size: 0.8rem;" onclick="return confirm('Submit your draft documents for HOD review?')">
-                        <i class="bi bi-send me-1"></i>Submit My Drafts for Review
-                    </button>
-                </form>
-            @endif
-            <button class="btn btn-sm btn-outline-primary fw-medium" data-bs-toggle="collapse" data-bs-target="#uploadSection" style="border-color: var(--navy); color: var(--navy); font-size: 0.8rem;">
-                <i class="bi bi-cloud-upload me-1"></i>Upload Document
-            </button>
-        </div>
+        @if(isset($latestDocuments) && $latestDocuments->where('user_id', auth()->id())->where('review_status', 'draft')->count() > 0)
+            <form action="{{ route('faculty.tasks.documents.submit', $task) }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm fw-medium text-white shadow-sm" style="background-color: var(--navy); font-size: 0.8rem;" onclick="return confirm('Submit your draft documents for HOD review?')">
+                    <i class="bi bi-send me-1"></i>Submit My Drafts for Review
+                </button>
+            </form>
+        @endif
     </div>
     <div class="card-body p-4">
-        <!-- Upload Form (Collapsible) -->
-        <div class="collapse mb-4" id="uploadSection">
-            <div class="bg-light rounded p-3 border" style="border-color: var(--border) !important;">
-                <form action="{{ route('faculty.tasks.documents.store', $task) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark small">Select Files</label>
-                        <input type="file" name="documents[]" class="form-control border" style="border-color: var(--border) !important;" multiple required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
-                        <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i>Supported: PDF, DOCX, XLSX, PPTX, ZIP, PNG, JPG. Max 10MB each.</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark small">Remarks (optional)</label>
-                        <textarea name="remarks" class="form-control border" style="border-color: var(--border) !important;" rows="2" placeholder="Add any notes about these documents..."></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm" style="background-color: var(--navy);">
-                        <i class="bi bi-upload me-1"></i>Upload as Draft
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Documents Grouped By Faculty -->
+        <!-- Documents Repository List -->
         @if(isset($groupedDocuments) && $groupedDocuments->isNotEmpty())
             @foreach($groupedDocuments as $uploaderId => $facultyDocs)
                 @php
                     $uploader = $facultyDocs->first()->user ?? \App\Models\User::find($uploaderId);
                     $isSelf = auth()->id() === $uploaderId;
                 @endphp
-                <div class="card border mb-4 shadow-none rounded-3" style="border-color: var(--border) !important;">
+                <div class="card border mb-3 shadow-none rounded-3" style="border-color: var(--border) !important;">
                     <div class="card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-2">
-                            <img src="{{ $uploader->profile_photo_url }}" alt="{{ $uploader->name }}" class="rounded-circle shadow-sm" style="width:28px;height:28px;object-fit:cover;border:1px solid var(--navy);">
+                            <img src="{{ $uploader->profile_photo_url }}" alt="{{ $uploader->name }}" class="rounded-circle shadow-sm" style="width:26px;height:26px;object-fit:cover;border:1px solid var(--navy);">
                             <div>
                                 <span class="fw-bold text-dark small">{{ $uploader->name }}</span>
                                 <span class="text-muted small ms-1" style="font-size:0.72rem;">({{ $uploader->designation ?? 'Faculty' }})</span>
@@ -400,20 +282,19 @@
                                 @endif
                             </div>
                         </div>
-                        <span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ $facultyDocs->count() }} Document(s)</span>
+                        <span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ $facultyDocs->count() }} Latest File(s)</span>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="bg-white text-uppercase text-secondary" style="font-size: 0.7rem; letter-spacing: 0.5px;">
                                     <tr>
-                                        <th class="ps-3 py-2.5">Document Name</th>
+                                        <th class="ps-3 py-2.5">Document</th>
                                         <th class="py-2.5">Uploaded By</th>
-                                        <th class="py-2.5">Date & Time</th>
+                                        <th class="py-2.5">Upload Date & Time</th>
                                         <th class="py-2.5">Version</th>
-                                        <th class="py-2.5">File Size</th>
                                         <th class="py-2.5">Status</th>
-                                        <th class="pe-3 py-2.5 text-end">Actions</th>
+                                        <th class="pe-3 py-2.5 text-end">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -422,11 +303,13 @@
                                         <tr>
                                             <td class="ps-3">
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <i class="bi {{ $doc->file_icon }}" style="color: {{ $doc->file_icon_color }}; font-size: 1.2rem;"></i>
+                                                    <i class="bi {{ $doc->file_icon }}" style="color: {{ $doc->file_icon_color }}; font-size: 1.25rem;"></i>
                                                     <div>
-                                                        <div class="fw-semibold text-dark text-truncate" style="max-width: 200px; font-size: 0.85rem;" title="{{ $doc->file_name }}">{{ $doc->file_name }}</div>
+                                                        <div class="fw-semibold text-dark text-truncate" style="max-width: 220px; font-size: 0.85rem;" title="{{ $doc->file_name }}">
+                                                            {{ $doc->file_name }}
+                                                        </div>
                                                         @if($doc->remarks)
-                                                            <div class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 200px;" title="{{ $doc->remarks }}">Note: {{ $doc->remarks }}</div>
+                                                            <div class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 220px;" title="{{ $doc->remarks }}">Note: {{ $doc->remarks }}</div>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -439,60 +322,26 @@
                                                 <span class="text-muted" style="font-size:0.7rem;">{{ $doc->created_at->format('g:i A') }}</span>
                                             </td>
                                             <td>
-                                                <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">v{{ $doc->version }}</span>
-                                            </td>
-                                            <td class="small text-muted" style="font-size: 0.78rem;">
-                                                {{ $doc->formatted_file_size }}
+                                                <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">Version {{ $doc->version }}</span>
                                             </td>
                                             <td>
-                                                <span class="badge rounded-pill px-2 py-1" style="background-color: {{ $badge['bg'] }}; color: {{ $badge['text'] }}; font-weight: 600; font-size: 0.7rem;">
+                                                <span class="badge rounded-pill px-2.5 py-1" style="background-color: {{ $badge['bg'] }}; color: {{ $badge['text'] }}; font-weight: 600; font-size: 0.7rem;">
                                                     {{ $badge['label'] }}
                                                 </span>
                                             </td>
                                             <td class="pe-3 text-end">
                                                 <div class="d-flex align-items-center gap-1 justify-content-end">
-                                                    {{-- Preview --}}
-                                                    @if($doc->is_previewable)
-                                                        <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size: 0.7rem;" title="Preview Document">
-                                                            <i class="bi bi-eye"></i> Preview
-                                                        </a>
-                                                    @endif
-                                                    {{-- Download --}}
-                                                    <a href="{{ route('faculty.tasks.documents.download', [$task, $doc]) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="Download Document">
-                                                        <i class="bi bi-download"></i> Download
+                                                    {{-- View document in new tab --}}
+                                                    <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary px-2.5 py-1 fw-medium" style="font-size: 0.75rem; border-color: var(--navy); color: var(--navy);" title="View Document in New Tab">
+                                                        <i class="bi bi-eye me-1"></i>View
                                                     </a>
-                                                    {{-- Version History --}}
-                                                    <button class="btn btn-sm btn-outline-info px-2 py-1" style="font-size: 0.7rem;" title="Version History" onclick="loadVersionHistory({{ $doc->original_document_id ?? $doc->id }}, {{ $task->id }})">
-                                                        <i class="bi bi-clock-history"></i> History
+                                                    {{-- Version History modal --}}
+                                                    <button class="btn btn-sm btn-outline-info px-2 py-1" style="font-size: 0.72rem;" title="Version History" onclick="loadVersionHistory({{ $doc->original_document_id ?? $doc->id }}, {{ $task->id }})">
+                                                        <i class="bi bi-clock-history me-1"></i>History
                                                     </button>
-                                                    {{-- Replace (Only document owner) --}}
-                                                    @if($isSelf && in_array($doc->review_status, ['draft', 'changes_requested']))
-                                                        <button class="btn btn-sm btn-outline-warning px-2 py-1" style="font-size: 0.7rem;" title="Replace Document" data-bs-toggle="modal" data-bs-target="#replaceDocModal{{ $doc->id }}">
-                                                            <i class="bi bi-arrow-repeat"></i> Replace
-                                                        </button>
-                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
-                                        {{-- Review Comments Row --}}
-                                        @if($doc->review_comments && in_array($doc->review_status, ['changes_requested', 'rejected']))
-                                            <tr>
-                                                <td colspan="7" class="ps-3 pe-3 py-2" style="background-color: {{ $doc->review_status === 'rejected' ? '#fce4ec' : '#fff8e1' }};">
-                                                    <div class="d-flex align-items-start gap-2">
-                                                        <i class="bi bi-chat-left-text {{ $doc->review_status === 'rejected' ? 'text-danger' : 'text-warning' }}" style="font-size: 0.85rem; margin-top: 2px;"></i>
-                                                        <div>
-                                                            <div class="fw-semibold small" style="font-size: 0.78rem; color: {{ $doc->review_status === 'rejected' ? '#c62828' : '#f57f17' }};">
-                                                                {{ $doc->review_status === 'rejected' ? 'Rejected' : 'Changes Requested' }} by {{ $doc->reviewer->name ?? 'HOD' }}
-                                                                @if($doc->reviewed_at)
-                                                                    <span class="fw-normal text-muted ms-1">{{ $doc->reviewed_at->diffForHumans() }}</span>
-                                                                @endif
-                                                            </div>
-                                                            <div class="text-dark" style="font-size: 0.8rem;">{{ $doc->review_comments }}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endif
                                     @endforeach
                                 </tbody>
                             </table>
@@ -502,8 +351,8 @@
             @endforeach
         @else
             <div class="text-center py-4 text-muted">
-                <i class="bi bi-folder fs-2 d-block mb-2 text-secondary"></i>
-                <p class="mb-0 small">No documents uploaded yet. Click "Upload Document" to get started.</p>
+                <i class="bi bi-folder-x fs-3 d-block mb-1 text-secondary"></i>
+                <span class="small">No documents uploaded yet. Faculty can upload supporting documents in the Update Progress section above.</span>
             </div>
         @endif
     </div>
@@ -570,11 +419,299 @@
     </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DISCUSSION & COMMENTS SECTION                                 -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mt-4 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3">
+        <h6 class="m-0 fw-bold" style="color: var(--navy);">
+            <i class="bi bi-chat-dots me-2" style="color: var(--maroon);"></i>Task Discussion & Comments
+        </h6>
+    </div>
+    <div class="card-body p-4">
+        <!-- Post Comment Form -->
+        <form action="{{ route('tasks.comments.store', $task) }}" method="POST" enctype="multipart/form-data" class="mb-4">
+            @csrf
+            <div class="mb-2">
+                <textarea name="comment" class="form-control border" rows="3" placeholder="Write a comment or update for the HOD..." required style="font-size:0.88rem;"></textarea>
+            </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <input type="file" name="attachment" class="form-control form-control-sm border" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                </div>
+                <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm px-4" style="background-color: var(--navy);">
+                    <i class="bi bi-send me-1"></i>Post Comment
+                </button>
+            </div>
+        </form>
+
+        <!-- Comments List -->
+        <div class="list-group list-group-flush">
+            @forelse($task->comments as $comment)
+                <div class="list-group-item px-0 py-3 border-bottom">
+                    <div class="d-flex align-items-start gap-2.5">
+                        <img src="{{ $comment->user->profile_photo_url }}" class="rounded-circle shadow-sm" style="width:32px;height:32px;object-fit:cover;border:1px solid var(--navy);">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-dark" style="font-size:0.85rem;">{{ $comment->user->name }}</span>
+                                <span class="text-muted small" style="font-size:0.72rem;">{{ $comment->created_at->diffForHumans() }}</span>
+                            </div>
+                            <div class="text-dark" style="font-size:0.85rem;">{{ $comment->comment }}</div>
+                            @if($comment->attachment_path)
+                                <div class="mt-2">
+                                    <a href="{{ Storage::url($comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                        <i class="bi bi-paperclip text-primary"></i> {{ $comment->attachment_name ?? 'Attachment' }}
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-3 text-muted small">No comments posted yet.</div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+@if(session('error'))
+<div id="errorToastPopup" class="position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg rounded-3 p-3 bg-white border border-danger d-flex align-items-center gap-3"
+     style="z-index: 1090; min-width: 320px; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;">
+    <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold text-dark small">Action Failed</div>
+        <div class="text-secondary small" style="font-size: 0.83rem; line-height: 1.35;">{{ session('error') }}</div>
+    </div>
+    <button type="button" class="btn-close ms-2 small" onclick="document.getElementById('errorToastPopup').remove()"></button>
+</div>
+<script>
+    setTimeout(function() {
+        const toast = document.getElementById('errorToastPopup');
+        if (toast) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => toast.remove(), 400);
+        }
+    }, 5000);
+</script>
+@endif
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TASK SUBTASKS / CHECKLIST SECTION (FOLDED ACCORDION VIEW)     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mt-4 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
+                <i class="bi bi-card-checklist" style="color: var(--gold); font-size: 1.2rem;"></i>Subtasks & Checklist
+            </h6>
+            <span class="text-muted small" style="font-size:0.75rem;">Shared work division items and HOD requirements</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @php $items = $task->checklistItems; @endphp
+            <span class="badge bg-light text-dark border px-2.5 py-1.5" style="font-size:0.75rem;">
+                <i class="bi bi-list-task me-1 text-primary"></i>{{ $items->count() }} {{ Str::plural('Item', $items->count()) }}
+                @if($items->isNotEmpty())
+                    · {{ $items->where('status', 'completed')->count() }} Completed
+                @endif
+            </span>
+            @can('manageChecklist', $task)
+            <button class="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-1" style="background-color: var(--navy); font-size:0.78rem;" data-bs-toggle="collapse" data-bs-target="#addChecklistItemCollapse">
+                <i class="bi bi-plus-lg"></i> Add Work Item
+            </button>
+            @endcan
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <!-- Add Subtask / Work Item Collapsible Form -->
+        @can('manageChecklist', $task)
+        <div class="collapse mb-4" id="addChecklistItemCollapse">
+            <div class="card card-body bg-light border-0 shadow-none rounded-3 p-3">
+                <h6 class="fw-bold text-dark mb-2" style="font-size:0.88rem;"><i class="bi bi-plus-circle me-1 text-primary"></i>Create New Work Item / Subtask</h6>
+                <form action="{{ route('tasks.checklist.store', $task) }}" method="POST">
+                    @csrf
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold text-dark small mb-1">Subtask Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" class="form-control form-control-sm border" placeholder="e.g. Collect syllabus requirements" required style="font-size:0.85rem;">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold text-dark small mb-1">Assign To</label>
+                            <select name="assigned_to" class="form-select form-select-sm border" style="font-size:0.85rem;">
+                                <option value="all">Both / All Collaborators (Shared)</option>
+                                @foreach($task->assignees as $assignee)
+                                    <option value="{{ $assignee->id }}" {{ auth()->id() === $assignee->id ? 'selected' : '' }}>
+                                        {{ $assignee->name }} ({{ $assignee->pivot->role === 'owner' ? 'Owner' : 'Collaborator' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small mb-1">Optional Description / Details</label>
+                            <textarea name="description" class="form-control form-control-sm border" rows="2" placeholder="Provide extra details or instructions..." style="font-size:0.83rem;"></textarea>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#addChecklistItemCollapse">Cancel</button>
+                            <button type="submit" class="btn btn-sm text-white fw-medium px-3" style="background-color: var(--navy);">
+                                <i class="bi bi-check-lg me-1"></i>Save Work Item
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        @endcan
+
+        <!-- Folded Work Items Accordion List -->
+        <div class="d-flex flex-column gap-2" id="checklistAccordionFaculty">
+            @forelse($items as $item)
+                @php
+                    $isHodReq = $item->isHodRequirement();
+                    $badgeDetails = $item->status_badge;
+                @endphp
+                <div class="card border rounded-3 shadow-none overflow-hidden" style="border-color: var(--border) !important;">
+                    <!-- Collapsed Header Row (Clickable) -->
+                    <div class="card-header bg-white py-2.5 px-3 border-0 d-flex align-items-center justify-content-between cursor-pointer checklist-collapse-header"
+                         data-bs-toggle="collapse"
+                         data-bs-target="#checklistItemCollapse{{ $item->id }}"
+                         aria-expanded="false"
+                         aria-controls="checklistItemCollapse{{ $item->id }}"
+                         style="cursor: pointer; border-left: 4px solid {{ $isHodReq ? 'var(--gold, #d4a017)' : 'var(--navy, #12275a)' }} !important;">
+                        
+                        <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden me-2">
+                            <i class="bi bi-chevron-right collapse-chevron text-muted flex-shrink-0" style="transition: transform 0.2s ease; font-size: 0.8rem;"></i>
+                            <span class="fw-semibold text-dark text-truncate {{ $item->status === 'completed' ? 'text-decoration-line-through text-muted' : '' }}" style="font-size: 0.88rem;">
+                                {{ $item->title }}
+                            </span>
+                        </div>
+
+                        <!-- Header Right Metadata -->
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                            @if($isHodReq)
+                                <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;" title="Mandatory requirement defined by HOD">
+                                    HOD Requirement
+                                </span>
+                            @else
+                                <span class="badge bg-light text-primary border" style="font-size: 0.65rem;">
+                                    Work Item
+                                </span>
+                            @endif
+
+                            <span class="text-muted small d-none d-md-inline" style="font-size: 0.72rem;">
+                                Assigned to {{ $item->assignee ? $item->assignee->name : 'Both' }}
+                            </span>
+
+                            <span class="badge rounded-pill px-2 py-0.8" style="background-color: {{ $badgeDetails['bg'] }}; color: {{ $badgeDetails['text'] }}; font-weight: 600; font-size: 0.68rem;">
+                                {{ $badgeDetails['label'] }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Expanded Content Area -->
+                    <div class="collapse" id="checklistItemCollapse{{ $item->id }}">
+                        <div class="card-body p-3 bg-light border-top" style="font-size: 0.83rem;">
+                            @if($item->description)
+                                <div class="mb-3 p-2 bg-white rounded border text-secondary" style="font-size: 0.82rem; line-height: 1.45;">
+                                    <strong class="text-dark d-block mb-0.5">Description:</strong>
+                                    {{ $item->description }}
+                                </div>
+                            @endif
+
+                            <div class="row g-2 mb-3 text-muted">
+                                <div class="col-sm-6">
+                                    <i class="bi bi-person-circle me-1 text-primary"></i><strong>Created by:</strong> {{ $item->creator->name ?? 'System' }} {{ $isHodReq ? '(HOD)' : '' }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="bi bi-calendar-event me-1 text-secondary"></i><strong>Created at:</strong> {{ $item->created_at->format('M d, Y g:i A') }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="bi bi-person-check me-1 text-success"></i><strong>Assigned to:</strong> {{ $item->assignee->name ?? 'Both / All Collaborators' }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="bi bi-clock-history me-1 text-info"></i><strong>Status:</strong> {{ $badgeDetails['label'] }}
+                                </div>
+                                @if($item->status === 'completed' && $item->completedByUser)
+                                    <div class="col-12 text-success">
+                                        <i class="bi bi-check-all me-1"></i><strong>Completed by:</strong> {{ $item->completedByUser->name }} · {{ $item->completed_at ? $item->completed_at->format('M d, Y g:i A') : '' }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Expanded Action Controls -->
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation();">
+                                    @can('updateChecklistItemStatus', [$task, $item])
+                                        <form action="{{ route('tasks.checklist.updateStatus', [$task, $item]) }}" method="POST" class="d-inline" onclick="event.stopPropagation();">
+                                            @csrf
+                                            @method('PATCH')
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label class="fw-semibold text-dark mb-0 small">Status:</label>
+                                                <select name="status" class="form-select form-select-sm border fw-semibold" onchange="this.form.submit()" style="font-size: 0.75rem; width: auto; background-color: #fff;">
+                                                    <option value="pending" {{ $item->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                                    <option value="in_progress" {{ $item->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                                    <option value="completed" {{ $item->status === 'completed' ? 'selected' : '' }}>Completed</option>
+                                                </select>
+                                            </div>
+                                        </form>
+                                    @endcan
+                                </div>
+
+                                <div onclick="event.stopPropagation();">
+                                    @can('deleteChecklistItem', [$task, $item])
+                                        <form action="{{ route('tasks.checklist.destroy', [$task, $item]) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to remove this work item?');" onclick="event.stopPropagation();">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.75rem;" onclick="event.stopPropagation();">
+                                                <i class="bi bi-trash"></i> Delete Work Item
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-card-checklist fs-3 d-block mb-1 text-secondary"></i>
+                    <span class="small">No subtasks or work items added yet. Collaborators or HOD can add work items above.</span>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+<style>
+    .checklist-collapse-header[aria-expanded="true"] .collapse-chevron {
+        transform: rotate(90deg) !important;
+    }
+</style>
+
+<script>
+function confirmDeleteWorkItem(event, title) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const confirmed = confirm('Delete work item "' + title + '" permanently from the database?');
+    if (!confirmed && event) {
+        event.preventDefault();
+    }
+    return confirmed;
+}
+</script>
+
 <x-task-timeline :task="$task" />
 
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ACTIVITY LOG & AUDIT HISTORY (Side-by-Side Collapsible)        -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div class="row g-4 mt-4">
+<div class="col-lg-6">
 <!-- Activity Log Timeline (Collapsible) -->
 @if($task->activities->count() > 0)
-<div class="card bg-white shadow-sm border-0 mt-4" style="border-radius: var(--radius, 8px);">
+<div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
     <div class="card-header bg-white border-bottom py-3 cursor-pointer" 
          data-bs-toggle="collapse" 
          data-bs-target="#facultyActivityLogCollapse" 
@@ -632,6 +769,61 @@
     </div>
 </div>
 @endif
+</div>
+<div class="col-lg-6">
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- AUDIT HISTORY TAB / SECTION (Collapsible)                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3 cursor-pointer" 
+         data-bs-toggle="collapse" 
+         data-bs-target="#facultyAuditHistoryCollapse" 
+         aria-expanded="false" 
+         aria-controls="facultyAuditHistoryCollapse"
+         style="cursor: pointer;">
+        <div class="d-flex align-items-center justify-content-between">
+            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
+                <i class="bi bi-chevron-right collapse-icon text-muted" style="transition: transform 0.25s ease;"></i>
+                <i class="bi bi-journal-text me-1" style="color: var(--navy);"></i>
+                <span>Audit History</span>
+                <span class="text-muted fw-normal" style="font-size: 0.85rem;">({{ $task->auditLogs->count() }} {{ Str::plural('Change', $task->auditLogs->count()) }})</span>
+            </h6>
+            <span class="badge bg-light text-secondary border px-2.5 py-1 small fw-normal">Click to expand</span>
+        </div>
+    </div>
+    <div class="collapse" id="facultyAuditHistoryCollapse">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.7rem;">
+                        <tr>
+                            <th class="ps-3 py-2.5">Date & Time</th>
+                            <th class="py-2.5">Changed By</th>
+                            <th class="py-2.5">Field Changed</th>
+                            <th class="py-2.5">Old Value</th>
+                            <th class="pe-3 py-2.5">New Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($task->auditLogs as $log)
+                        <tr>
+                            <td class="ps-3 text-nowrap small text-muted">{{ $log->created_at->format('M d, Y g:i A') }}</td>
+                            <td class="fw-semibold text-dark" style="font-size:0.82rem;">{{ $log->user->name ?? 'System' }}</td>
+                            <td><span class="badge bg-light text-dark border" style="font-size:0.7rem;">{{ $log->formatted_field_name }}</span></td>
+                            <td class="small text-muted" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $log->old_value ?? '—' }}</td>
+                            <td class="pe-3 small text-dark fw-medium" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $log->new_value ?? '—' }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center py-3 text-muted small">No audit modifications recorded yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
 
 <!-- Add Collaborator Modal -->
 @can('addCollaborator', $task)
@@ -706,88 +898,151 @@
 
 @section('scripts')
 <style>
-    /* Custom Range Slider Styling */
-    .psg-range-slider {
-        -webkit-appearance: none;
-        appearance: none;
+    /* Modern Range Slider – thin track, smooth circular thumb */
+    .psg-navy-slider {
+        -webkit-appearance: none !important;
+        appearance: none !important;
         width: 100%;
-        height: 8px;
-        border-radius: 4px;
-        background: linear-gradient(to right, var(--navy) 0%, var(--navy) var(--slider-fill, 0%), #e9ecef var(--slider-fill, 0%), #e9ecef 100%);
+        height: 6px !important;
+        border-radius: 3px;
+        background: #e9ecef;
         outline: none;
-        transition: background 0.15s ease;
+        padding: 0 !important;
+        transition: background 0.1s ease;
     }
-    .psg-range-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 22px;
-        height: 22px;
+    .psg-navy-slider::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 3px;
+        background: transparent;
+    }
+    .psg-navy-slider::-webkit-slider-thumb {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
-        background: var(--navy);
+        background: var(--navy, #12275a);
         cursor: pointer;
-        border: 3px solid #fff;
-        box-shadow: 0 2px 6px rgba(18, 39, 90, 0.3);
+        border: 2px solid #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+        margin-top: -6px;
         transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .psg-range-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.15);
-        box-shadow: 0 3px 10px rgba(18, 39, 90, 0.4);
+    .psg-navy-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.18);
+        box-shadow: 0 2px 8px rgba(18,39,90,0.35);
     }
-    .psg-range-slider::-moz-range-thumb {
-        width: 22px;
-        height: 22px;
+    .psg-navy-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
-        background: var(--navy);
+        background: var(--navy, #12275a);
         cursor: pointer;
-        border: 3px solid #fff;
-        box-shadow: 0 2px 6px rgba(18, 39, 90, 0.3);
+        border: 2px solid #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+    }
+    .psg-navy-slider::-moz-range-track {
+        height: 6px;
+        border-radius: 3px;
+        background: transparent;
     }
 </style>
 <script>
+document.addEventListener('DOMContentLoaded', function () {
     const progressRange = document.getElementById('progressRange');
-    const progressLabel = document.getElementById('progressLabel');
-    const progressPreview = document.getElementById('progressPreview');
-    const statusSelect = document.getElementById('statusSelect');
+    const progressValBadge = document.getElementById('progressValBadge');
+    const sliderTooltip = document.getElementById('sliderTooltip');
+    const tooltipText = document.getElementById('tooltipText');
 
-    function updateSlider(val) {
-        if (!progressRange) return;
-        progressLabel.textContent = val + '%';
-        progressPreview.style.width = val + '%';
-        progressRange.style.setProperty('--slider-fill', val + '%');
+    const workflowBadge = document.getElementById('workflowBadge');
+    const workflowStageLabel = document.getElementById('workflowStageLabel');
+    const progressInput = document.getElementById('progressInput');
+    const statusInput = document.getElementById('statusInput');
 
-        if (val >= 100) {
-            progressPreview.style.backgroundColor = '#2e7d32';
-            progressLabel.style.backgroundColor = '#2e7d32';
-        } else if (val >= 50) {
-            progressPreview.style.backgroundColor = 'var(--navy)';
-            progressLabel.style.backgroundColor = 'var(--navy)';
-        } else {
-            progressPreview.style.backgroundColor = 'var(--gold)';
-            progressLabel.style.backgroundColor = 'var(--gold)';
+    const stageMap = [
+        { min: 0, max: 0, stage: 'Not Started', statusKey: 'not_started', badgeClass: 'bg-secondary text-white', desc: 'Task has not been started.' },
+        { min: 1, max: 20, stage: 'Collecting Resources', statusKey: 'collecting_resources', badgeClass: 'bg-info text-dark', desc: 'Faculty is collecting resources and preparing work.' },
+        { min: 21, max: 40, stage: 'Working on Task', statusKey: 'working_on_task', badgeClass: 'bg-primary text-white', desc: 'Faculty is actively working on the assigned task.' },
+        { min: 41, max: 60, stage: 'Supporting Documents Uploaded', statusKey: 'documents_uploaded', badgeClass: 'bg-purple text-white', desc: 'Supporting documents have been uploaded.' },
+        { min: 61, max: 80, stage: 'Checklist Completed', statusKey: 'checklist_completed', badgeClass: 'bg-warning text-dark', desc: 'Checklist and required activities have been completed.' },
+        { min: 81, max: 99, stage: 'Submitted for Review', statusKey: 'submitted_for_review', badgeClass: 'bg-warning text-dark fw-bold', desc: 'Task has been submitted for HOD review.' },
+        { min: 100, max: 100, stage: 'Completed', statusKey: 'completed', badgeClass: 'bg-success text-white fw-bold', desc: 'Task has been completed successfully.' }
+    ];
+
+    function getStageInfo(val) {
+        val = parseInt(val, 10) || 0;
+        for (const item of stageMap) {
+            if (val >= item.min && val <= item.max) return item;
+        }
+        return stageMap[0];
+    }
+
+    function updateSliderUI(val) {
+        val = parseInt(val, 10) || 0;
+        const info = getStageInfo(val);
+
+        if (progressValBadge) progressValBadge.textContent = val + '%';
+        if (progressInput) progressInput.value = val;
+        if (statusInput) statusInput.value = info.statusKey;
+
+        if (workflowStageLabel) workflowStageLabel.textContent = info.stage;
+
+        if (workflowBadge) {
+            workflowBadge.className = 'badge rounded-pill px-3 py-1.5 fw-semibold ' + info.badgeClass;
+            workflowBadge.textContent = info.stage;
         }
 
-        if (val == 100) {
-            statusSelect.value = 'completed';
-        } else if (val > 0) {
-            statusSelect.value = 'in_progress';
-        } else {
-            statusSelect.value = 'pending';
+        // Dynamic Navy Track Filling from 0% up to current position
+        if (progressRange) {
+            const navyColor = getComputedStyle(document.documentElement).getPropertyValue('--navy').trim() || '#12275a';
+            progressRange.style.background = `linear-gradient(to right, ${navyColor} 0%, ${navyColor} ${val}%, #e9ecef ${val}%, #e9ecef 100%)`;
+        }
+
+        // Floating Tooltip Positioning
+        if (sliderTooltip && progressRange) {
+            const min = parseInt(progressRange.min || 0, 10);
+            const max = parseInt(progressRange.max || 100, 10);
+            const pct = (val - min) / (max - min);
+            
+            sliderTooltip.style.left = `calc(${pct * 100}% + (${8 - pct * 16}px))`;
+            if (tooltipText) tooltipText.textContent = `${val}% - ${info.stage}`;
         }
     }
 
     if (progressRange) {
-        progressRange.addEventListener('input', function() {
-            updateSlider(this.value);
+        updateSliderUI(progressRange.value);
+
+        progressRange.addEventListener('input', function () {
+            updateSliderUI(this.value);
+            if (sliderTooltip) sliderTooltip.style.opacity = '1';
         });
-        updateSlider(progressRange.value);
+
+        progressRange.addEventListener('mousedown', function () {
+            if (sliderTooltip) sliderTooltip.style.opacity = '1';
+        });
+
+        progressRange.addEventListener('mouseup', function () {
+            if (sliderTooltip) sliderTooltip.style.opacity = '0';
+        });
+
+        progressRange.addEventListener('mouseleave', function () {
+            if (sliderTooltip) sliderTooltip.style.opacity = '0';
+        });
+
+        progressRange.addEventListener('touchstart', function () {
+            if (sliderTooltip) sliderTooltip.style.opacity = '1';
+        });
+
+        progressRange.addEventListener('touchend', function () {
+            if (sliderTooltip) sliderTooltip.style.opacity = '0';
+        });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (el) {
-            return new bootstrap.Tooltip(el);
-        });
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (el) {
+        return new bootstrap.Tooltip(el);
     });
+});
 
     function loadVersionHistory(docId, taskId) {
         const modal = new bootstrap.Modal(document.getElementById('versionHistoryModal'));

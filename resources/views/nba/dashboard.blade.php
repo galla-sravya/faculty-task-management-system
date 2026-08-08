@@ -164,9 +164,7 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="{{ $task->is_overdue ? 'text-danger fw-bold' : '' }}">
-                                            {{ $task->deadline->format('M d, Y') }}
-                                        </span>
+                                        <x-task-deadline-badge :task="$task" />
                                     </td>
                                     <td class="pe-3 text-end">
                                         <a href="{{ route('nba.tasks.show', $task) }}" class="btn btn-sm btn-outline-navy py-1 px-2" style="font-size:0.78rem;">View</a>

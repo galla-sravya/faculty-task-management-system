@@ -20,7 +20,7 @@ class NotificationService
     /**
      * Helper to log notification log and prevent duplicate entries within 1 minute window.
      */
-    protected function logNotification(int $userId, string $type, int $referenceId, string $referenceType, string $message): ?NotificationLog
+    public function logNotification(int $userId, string $type, int $referenceId, string $referenceType, string $message): ?NotificationLog
     {
         // Duplicate prevention check
         $exists = NotificationLog::where('user_id', $userId)
@@ -48,7 +48,7 @@ class NotificationService
     /**
      * Helper to record activity timeline entry.
      */
-    protected function recordActivity(int $taskId, ?int $userId, string $action, string $description): TaskActivity
+    public function recordActivity(int $taskId, ?int $userId, string $action, string $description): TaskActivity
     {
         return TaskActivity::create([
             'task_id'     => $taskId,
@@ -218,40 +218,89 @@ class NotificationService
     public function notifySubtaskCreated(Task $task, TaskChecklistItem $item, ?User $actor = null): void
     {
         $actor = $actor ?? auth()->user();
+        $assigneeName = $item->assignee ? $item->assignee->name : 'All Collaborators';
+        $creatorRole = $actor?->isHod() ? 'HOD' : 'Faculty';
 
-        $this->recordAudit($task->id, $actor?->id, 'subtask_created', null, $item->title);
-        $this->recordActivity($task->id, $actor?->id, 'checklist_item_added', ($actor?->name ?? 'User') . ' added subtask: "' . $item->title . '"');
+        $auditVal = $item->title . " (Assigned to: {$assigneeName})";
+        $this->recordAudit($task->id, $actor?->id, 'subtask_created', null, $auditVal);
+        
+        $activityMsg = ($actor?->name ?? 'User') . " ({$creatorRole}) added subtask: \"{$item->title}\" (Assigned to: {$assigneeName})";
+        $this->recordActivity($task->id, $actor?->id, 'checklist_item_added', $activityMsg);
 
-        foreach ($task->assignees as $assignee) {
-            if ($assignee->id !== $actor?->id) {
-                $this->logNotification(
-                    $assignee->id,
-                    'subtask_created',
-                    $task->id,
-                    Task::class,
-                    ($actor?->name ?? 'User') . ' added subtask "' . $item->title . '" to task: ' . $task->title
-                );
-            }
+        // Notify specific assignee if assigned to a single collaborator (and not self)
+        if ($item->assigned_to && $item->assigned_to !== $actor?->id) {
+            $this->logNotification(
+                $item->assigned_to,
+                'subtask_assigned',
+                $task->id,
+                Task::class,
+                ($actor?->name ?? 'User') . ' assigned subtask "' . $item->title . '" to you on task: ' . $task->title
+            );
+        }
+
+        // Notify other assignees & HOD (excluding actor and already notified assigned_to)
+        $notifyUserIds = $task->assignees->pluck('id')->push($task->created_by)->unique()
+            ->reject(fn ($id) => $id === $actor?->id || $id === $item->assigned_to);
+
+        foreach ($notifyUserIds as $uId) {
+            $this->logNotification(
+                $uId,
+                'subtask_created',
+                $task->id,
+                Task::class,
+                ($actor?->name ?? 'User') . ' added subtask "' . $item->title . '" to task: ' . $task->title
+            );
         }
     }
 
-    public function notifySubtaskCompleted(Task $task, TaskChecklistItem $item, bool $isCompleted, ?User $actor = null): void
+    public function notifySubtaskStatusChanged(Task $task, TaskChecklistItem $item, string $oldStatus, string $newStatus, ?User $actor = null): void
     {
         $actor = $actor ?? auth()->user();
+        $oldLabel = ucfirst(str_replace('_', ' ', $oldStatus));
+        $newLabel = ucfirst(str_replace('_', ' ', $newStatus));
 
-        $this->recordAudit($task->id, $actor?->id, $isCompleted ? 'subtask_completed' : 'subtask_reopened', $isCompleted ? 'Pending' : 'Completed', $isCompleted ? 'Completed: ' . $item->title : 'Pending: ' . $item->title);
-        $this->recordActivity($task->id, $actor?->id, 'checklist_item_toggled', ($actor?->name ?? 'User') . ($isCompleted ? ' completed' : ' uncompleted') . ' subtask: "' . $item->title . '"');
+        $this->recordAudit($task->id, $actor?->id, 'subtask_status', $oldLabel, $newLabel . ': ' . $item->title);
+        $this->recordActivity($task->id, $actor?->id, 'checklist_item_toggled', ($actor?->name ?? 'User') . ' updated subtask "' . $item->title . '" status from ' . $oldLabel . ' to ' . $newLabel);
 
         $notifyUserIds = $task->assignees->pluck('id')->push($task->created_by)->unique()->reject(fn ($id) => $id === $actor?->id);
         foreach ($notifyUserIds as $uId) {
             $this->logNotification(
                 $uId,
-                'subtask_completed',
+                'subtask_status_changed',
                 $task->id,
                 Task::class,
-                ($actor?->name ?? 'User') . ($isCompleted ? ' completed' : ' reopened') . ' subtask "' . $item->title . '" on task: ' . $task->title
+                ($actor?->name ?? 'User') . ' updated subtask "' . $item->title . '" to ' . $newLabel . ' on task: ' . $task->title
             );
         }
+    }
+
+    public function notifySubtaskUpdated(Task $task, TaskChecklistItem $item, array $changes, ?User $actor = null): void
+    {
+        $actor = $actor ?? auth()->user();
+
+        foreach ($changes as $field => $val) {
+            $this->recordAudit($task->id, $actor?->id, 'subtask_' . $field, $val['old'] ?? '—', $val['new'] ?? '—');
+        }
+
+        $this->recordActivity($task->id, $actor?->id, 'checklist_item_updated', ($actor?->name ?? 'User') . ' updated subtask: "' . $item->title . '"');
+
+        $notifyUserIds = $task->assignees->pluck('id')->push($task->created_by)->unique()->reject(fn ($id) => $id === $actor?->id);
+        foreach ($notifyUserIds as $uId) {
+            $this->logNotification(
+                $uId,
+                'subtask_updated',
+                $task->id,
+                Task::class,
+                ($actor?->name ?? 'User') . ' updated subtask "' . $item->title . '" on task: ' . $task->title
+            );
+        }
+    }
+
+    public function notifySubtaskCompleted(Task $task, TaskChecklistItem $item, bool $isCompleted, ?User $actor = null): void
+    {
+        $status = $isCompleted ? 'completed' : 'pending';
+        $oldStatus = $isCompleted ? 'pending' : 'completed';
+        $this->notifySubtaskStatusChanged($task, $item, $oldStatus, $status, $actor);
     }
 
     public function notifySubtaskDeleted(Task $task, string $title, ?User $actor = null): void
@@ -260,6 +309,17 @@ class NotificationService
 
         $this->recordAudit($task->id, $actor?->id, 'subtask_deleted', $title, null);
         $this->recordActivity($task->id, $actor?->id, 'checklist_item_deleted', ($actor?->name ?? 'User') . ' removed subtask: "' . $title . '"');
+
+        $notifyUserIds = $task->assignees->pluck('id')->push($task->created_by)->unique()->reject(fn ($id) => $id === $actor?->id);
+        foreach ($notifyUserIds as $uId) {
+            $this->logNotification(
+                $uId,
+                'subtask_deleted',
+                $task->id,
+                Task::class,
+                ($actor?->name ?? 'User') . ' deleted subtask "' . $title . '" from task: ' . $task->title
+            );
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
