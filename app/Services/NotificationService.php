@@ -135,7 +135,10 @@ class NotificationService
         );
 
         if ($collaborator->email) {
-            Mail::to($collaborator)->send(new TaskAssigned($task));
+            $sender = $actor ?? $task->creator ?? User::where('role', 'hod')->first();
+            if ($sender) {
+                Mail::to($collaborator)->send(new \App\Mail\CollaboratorAdded($task, $sender));
+            }
         }
 
         // 2. Notify the HOD if a non-HOD user added the collaborator
@@ -194,7 +197,7 @@ class NotificationService
         );
 
         if ($newAssignee->email) {
-            Mail::to($newAssignee)->send(new TaskAssigned($task));
+            Mail::to($newAssignee)->send(new \App\Mail\TaskReassigned($task, $actor, $oldAssignee, $newAssignee, $reason));
         }
 
         // Notify the old assignee
@@ -236,6 +239,13 @@ class NotificationService
                 Task::class,
                 'Task has been archived: ' . $task->title
             );
+
+            if ($assignee->email) {
+                $sender = $actor ?? $task->creator ?? User::where('role', 'hod')->first();
+                if ($sender) {
+                    Mail::to($assignee)->send(new \App\Mail\TaskArchived($task, $sender));
+                }
+            }
         }
     }
 

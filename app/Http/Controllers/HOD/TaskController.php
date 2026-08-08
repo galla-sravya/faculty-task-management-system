@@ -248,8 +248,14 @@ class TaskController extends Controller
     /**
      * Archive task (Soft Delete).
      */
-    public function destroy(Task $task)
+    public function destroy($id)
     {
+        $task = Task::withTrashed()->findOrFail($id);
+
+        if ($task->trashed()) {
+            return redirect()->route('hod.tasks.index')->with('success', 'Task is already archived.');
+        }
+
         $this->authorize('delete', $task);
 
         $this->notificationService->notifyTaskArchived($task);

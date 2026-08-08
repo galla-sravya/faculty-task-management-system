@@ -142,6 +142,16 @@
                                     </span>
                                 </td>
                             </tr>
+                            @if(isset($pivot) && $pivot->assigned_at)
+                            <tr>
+                                <td class="text-muted fw-medium ps-0 py-2">Assigned To You</td>
+                                <td class="py-2">
+                                    <span class="fw-semibold text-dark">
+                                        <i class="bi bi-person-check me-1 text-secondary"></i>{{ \Carbon\Carbon::parse($pivot->assigned_at)->format('M d, Y h:i A') }}
+                                    </span>
+                                </td>
+                            </tr>
+                            @endif
                             <tr>
                                 <td class="text-muted fw-medium ps-0 py-2">Deadline</td>
                                 <td class="py-2">

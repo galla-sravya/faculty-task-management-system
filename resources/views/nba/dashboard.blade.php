@@ -21,37 +21,37 @@
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white h-100 border-start border-4 border-primary">
             <div class="text-muted small text-uppercase fw-semibold mb-1">My NBA Tasks</div>
-            <div class="h3 fw-bold mb-0 text-navy">{{ $stats['total'] }}</div>
+            <div class="h3 fw-bold mb-0 text-navy">{{ $totalTasks }}</div>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white h-100 border-start border-4 border-warning">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Pending</div>
-            <div class="h3 fw-bold mb-0 text-warning">{{ $stats['pending'] }}</div>
+            <div class="h3 fw-bold mb-0 text-warning">{{ $totalTasks - $inProgressTasks - $completedTasks }}</div>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white h-100 border-start border-4 border-info">
             <div class="text-muted small text-uppercase fw-semibold mb-1">In Progress</div>
-            <div class="h3 fw-bold mb-0 text-info">{{ $stats['in_progress'] }}</div>
+            <div class="h3 fw-bold mb-0 text-info">{{ $inProgressTasks }}</div>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white h-100 border-start border-4 border-purple">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Pending Review</div>
-            <div class="h3 fw-bold mb-0 text-primary">{{ $stats['pending_review'] }}</div>
+            <div class="h3 fw-bold mb-0 text-primary">{{ $documentsAwaitingReview->count() }}</div>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white h-100 border-start border-4 border-success">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Completed</div>
-            <div class="h3 fw-bold mb-0 text-success">{{ $stats['completed'] }}</div>
+            <div class="h3 fw-bold mb-0 text-success">{{ $completedTasks }}</div>
         </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
         <div class="card border-0 shadow-sm rounded-3 p-3 text-center bg-white h-100 border-start border-4 border-danger">
             <div class="text-muted small text-uppercase fw-semibold mb-1">Overdue</div>
-            <div class="h3 fw-bold mb-0 text-danger">{{ $stats['overdue'] }}</div>
+            <div class="h3 fw-bold mb-0 text-danger">{{ $overdueTasks }}</div>
         </div>
     </div>
 </div>
@@ -60,13 +60,13 @@
     <!-- Left Column: My NBA Tasks & Documents Awaiting Approval -->
     <div class="col-lg-8">
         <!-- Documents Awaiting Approval -->
-        @if($documentsAwaitingApproval->count() > 0)
+        @if($documentsAwaitingReview->count() > 0)
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0 text-navy d-flex align-items-center gap-2">
                     <i class="bi bi-file-earmark-check text-warning fs-5"></i> Documents Awaiting Review
                 </h6>
-                <span class="badge bg-warning text-dark">{{ $documentsAwaitingApproval->count() }} Pending</span>
+                <span class="badge bg-warning text-dark">{{ $documentsAwaitingReview->count() }} Pending</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -81,7 +81,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($documentsAwaitingApproval as $doc)
+                            @foreach($documentsAwaitingReview as $doc)
                             <tr>
                                 <td class="ps-3 fw-semibold text-navy">
                                     <i class="bi bi-file-earmark-pdf me-1 text-danger"></i> {{ $doc->file_name }}
@@ -116,7 +116,7 @@
                 <a href="{{ route('nba.tasks.index') }}" class="btn btn-sm btn-link text-navy fw-semibold p-0 text-decoration-none">View All &rarr;</a>
             </div>
             <div class="card-body p-0">
-                @if($myTasks->isEmpty())
+                @if($recentTasks->isEmpty())
                     <div class="p-4 text-center text-muted">
                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                         No NBA tasks found. <a href="{{ route('nba.tasks.create') }}" class="text-navy fw-semibold">Create an NBA Task</a> to get started.
@@ -135,7 +135,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($myTasks as $task)
+                                @foreach($recentTasks as $task)
                                 <tr>
                                     <td class="ps-3">
                                         <a href="{{ route('nba.tasks.show', $task) }}" class="fw-semibold text-navy text-decoration-none">
@@ -222,10 +222,10 @@
                 <a href="{{ route('nba.meetings.index') }}" class="btn btn-sm btn-link text-navy fw-semibold p-0 text-decoration-none">View All</a>
             </div>
             <div class="card-body p-3">
-                @if($myMeetings->isEmpty())
+                @if($upcomingMeetings->isEmpty())
                     <div class="text-muted small text-center py-3">No NBA meetings scheduled.</div>
                 @else
-                    @foreach($myMeetings as $m)
+                    @foreach($upcomingMeetings as $m)
                     <div class="border-bottom pb-2 mb-2 last-border-0">
                         <div class="d-flex justify-content-between align-items-start">
                             <a href="{{ route('nba.meetings.show', $m) }}" class="fw-semibold text-dark text-decoration-none small">
@@ -244,30 +244,7 @@
             </div>
         </div>
 
-        <!-- My Notifications -->
-        <div class="card border-0 shadow-sm rounded-3 mb-4">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0 text-navy d-flex align-items-center gap-2">
-                    <i class="bi bi-bell text-warning fs-5"></i> My Notifications
-                </h6>
-                <a href="{{ route('notifications.index') }}" class="btn btn-sm btn-link text-navy fw-semibold p-0 text-decoration-none">All</a>
-            </div>
-            <div class="card-body p-3">
-                @if($myNotifications->isEmpty())
-                    <div class="text-muted small text-center py-3">No recent notifications.</div>
-                @else
-                    @foreach($myNotifications->take(5) as $note)
-                    <div class="d-flex gap-2 align-items-start border-bottom pb-2 mb-2">
-                        <i class="bi bi-info-circle text-primary mt-1" style="font-size:0.85rem;"></i>
-                        <div>
-                            <div class="small text-dark">{{ $note->message }}</div>
-                            <div class="text-muted" style="font-size:0.7rem;">{{ $note->sent_at?->diffForHumans() }}</div>
-                        </div>
-                    </div>
-                    @endforeach
-                @endif
-            </div>
-        </div>
+
     </div>
 </div>
 @endsection

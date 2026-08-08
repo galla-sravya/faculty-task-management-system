@@ -1,7 +1,16 @@
 <x-mail::message>
 # New Task Assigned: {{ $task->title }}
 
-You have been assigned a new task by your Head of Department.
+@php
+    $assignerRole = 'Head of Department';
+    if ($task->owner_role === 'nba_coordinator' || ($task->creator && $task->creator->role === 'nba_coordinator')) {
+        $assignerRole = 'NBA Coordinator';
+    } elseif ($task->owner_role === 'faculty') {
+        $assignerRole = 'Faculty Member';
+    }
+@endphp
+
+You have been assigned a new task by your {{ $assignerRole }}.
 
 **Priority:** {{ ucfirst($task->priority) }}  
 **Assigned Date:** {{ \Carbon\Carbon::parse($task->created_at)->format('M d, Y h:i A') }}  

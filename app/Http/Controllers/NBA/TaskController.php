@@ -249,8 +249,14 @@ class TaskController extends Controller
         return redirect()->route('nba.tasks.show', $task)->with('success', 'NBA Task updated successfully.');
     }
 
-    public function destroy(Task $task)
+    public function destroy($id)
     {
+        $task = Task::withTrashed()->findOrFail($id);
+
+        if ($task->trashed()) {
+            return redirect()->route('nba.tasks.index')->with('success', 'NBA Task is already archived.');
+        }
+
         $this->authorize('delete', $task);
 
         $this->notificationService->notifyTaskArchived($task);

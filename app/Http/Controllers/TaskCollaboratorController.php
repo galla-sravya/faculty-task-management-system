@@ -77,6 +77,8 @@ class TaskCollaboratorController extends Controller
             return back()->with('error', 'Selected faculty are already assigned to this task.');
         }
 
+        $task->touch(); // Touch to update the task's updated_at timestamp
+
         return back()->with('success', 'Collaborator(s) added: ' . implode(', ', $added));
     }
 
@@ -97,6 +99,8 @@ class TaskCollaboratorController extends Controller
 
         // Centralized notification & activity logging
         $this->notificationService->notifyCollaboratorRemoved($task, $user);
+
+        $task->touch(); // Touch to update the task's updated_at timestamp
 
         return back()->with('success', "{$user->name} removed from this task.");
     }
@@ -159,6 +163,7 @@ class TaskCollaboratorController extends Controller
             $task->assignees()->updateExistingPivot($newAssigneeId, [
                 'role'          => $oldRole,
                 'assigned_by'   => $user->id,
+                'assigned_at'   => now(),
                 'is_reassigned' => true,
             ]);
         } else {
@@ -172,30 +177,34 @@ class TaskCollaboratorController extends Controller
             ]);
         }
 
-        // Create assignment tracking record
-        TaskAssignment::create([
-            'task_id'     => $task->id,
-            'faculty_id'  => $newAssigneeId,
-            'assigned_by' => $user->id,
-            'role'        => $oldRole,
-            'status'      => 'pending',
-            'reason'      => $reason ? "Reassigned from {$oldAssignee->name}. {$reason}" : "Reassigned from {$oldAssignee->name}.",
-            'assigned_at' => now(),
-        ]);
+        // Create or update assignment tracking record
+        TaskAssignment::updateOrCreate(
+            [
+                'task_id'    => $task->id,
+                'faculty_id' => $newAssigneeId,
+            ],
+            [
+                'assigned_by' => $user->id,
+                'role'        => $oldRole,
+                'status'      => 'pending',
+                'reason'      => $reason ? "Reassigned from {$oldAssignee->name}. {$reason}" : "Reassigned from {$oldAssignee->name}.",
+                'assigned_at' => now(),
+            ]
+        );
 
         // Send notifications
         $this->notificationService->notifyTaskReassigned($task, $oldAssignee, $newAssignee, $reason);
 
         $message = "Task reassigned from {$oldAssignee->name} to {$newAssignee->name}.";
 
-        // Check if the current user can still view the task
-        if ($user->can('view', $task)) {
-            return back()->with('success', $message);
+        // Faculty should always redirect to dashboard after reassigning
+        if ($user->isFaculty()) {
+            return redirect()->route('dashboard')->with('success', $message);
         }
 
-        // If they can no longer view it (e.g. Faculty who transferred their own task), redirect to their task list
-        if ($user->isFaculty()) {
-            return redirect()->route('faculty.tasks.index')->with('success', $message);
+        // Check if the current user (HOD/NBA) can still view the task
+        if ($user->can('view', $task)) {
+            return back()->with('success', $message);
         }
 
         return redirect()->route('dashboard')->with('success', $message);

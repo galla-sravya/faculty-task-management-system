@@ -41,10 +41,14 @@ class SendProgressDeadlineReminders extends Command
                 $percentElapsed = ($elapsedSeconds / $totalSeconds) * 100;
             }
 
+            $milestone50Time = $created->copy()->addSeconds($totalSeconds * 0.5);
+            $milestone75Time = $created->copy()->addSeconds($totalSeconds * 0.75);
+
             // Check for 50% elapsed time threshold
             if ($percentElapsed >= 50 && is_null($task->reminder_50pct_sent_at)) {
                 foreach ($task->assignees as $assignee) {
-                    if ($assignee->pivot->status !== 'completed') {
+                    $assignedAt = \Carbon\Carbon::parse($assignee->pivot->assigned_at ?? $created);
+                    if ($assignee->pivot->status !== 'completed' && $assignedAt->lessThanOrEqualTo($milestone50Time)) {
                         Mail::to($assignee->email)->send(new DeadlineReminder($task, '50pct'));
 
                         NotificationLog::create([
@@ -64,7 +68,8 @@ class SendProgressDeadlineReminders extends Command
             // Check for 75% elapsed time threshold (do not skip if 50% fired in the same run)
             if ($percentElapsed >= 75 && is_null($task->reminder_75pct_sent_at)) {
                 foreach ($task->assignees as $assignee) {
-                    if ($assignee->pivot->status !== 'completed') {
+                    $assignedAt = \Carbon\Carbon::parse($assignee->pivot->assigned_at ?? $created);
+                    if ($assignee->pivot->status !== 'completed' && $assignedAt->lessThanOrEqualTo($milestone75Time)) {
                         Mail::to($assignee->email)->send(new DeadlineReminder($task, '75pct'));
 
                         NotificationLog::create([

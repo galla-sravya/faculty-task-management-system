@@ -53,7 +53,7 @@
 
     <!-- Upcoming Deadlines Table -->
     <div class="col-lg-7 col-xl-8">
-        <div class="card bg-white shadow-sm border-0 h-100" style="border-radius: var(--radius, 8px);">
+        <div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
             <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold" style="color: var(--navy);">
                     <i class="bi bi-exclamation-circle me-2" style="color: var(--maroon);"></i>My Upcoming Deadlines
@@ -78,9 +78,16 @@
                             @forelse($upcomingDeadlines as $task)
                             <tr onclick="window.location='{{ route('faculty.tasks.show', $task) }}'" style="cursor: pointer;">
                                 <td class="ps-4">
-                                    <a href="{{ route('faculty.tasks.show', $task) }}" class="text-decoration-none fw-semibold" style="color: var(--navy);">
-                                        {{ $task->title }}
-                                    </a>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a href="{{ route('faculty.tasks.show', $task) }}" class="text-decoration-none fw-semibold" style="color: var(--navy);">
+                                            {{ $task->title }}
+                                        </a>
+                                        @if($task->pivot && $task->pivot->is_reassigned)
+                                            <span class="badge bg-warning text-dark rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                                <i class="bi bi-arrow-repeat me-1"></i>Reassigned
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge rounded-pill bg-{{ $task->priority_color }} px-2 py-1">
@@ -111,6 +118,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 

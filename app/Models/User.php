@@ -19,6 +19,7 @@ class User extends Authenticatable
         'password',
         'role',
         'department_id',
+        'coordinator_type_id',
         'phone',
         'designation',
         'profile_photo_path',
@@ -62,6 +63,21 @@ class User extends Authenticatable
     public function isNbaCoordinator(): bool
     {
         return $this->role === 'nba_coordinator';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isCoordinator(): bool
+    {
+        return $this->role === 'coordinator';
+    }
+
+    public function coordinatorType(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(CoordinatorType::class);
     }
 
     public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo

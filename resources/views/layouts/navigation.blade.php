@@ -13,7 +13,17 @@
 
     <!-- ── Navigation Links ── -->
     <nav class="sidebar-nav flex-grow-1">
-        @if(auth()->user()->isHod())
+        @if(auth()->user()->isAdmin())
+            <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" title="Dashboard">
+                <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
+            </a>
+            <a href="{{ route('admin.coordinators.index') }}" class="sidebar-link {{ request()->routeIs('admin.coordinators.*') ? 'active' : '' }}" title="Coordinators">
+                <i class="bi bi-people"></i><span class="sidebar-label">Coordinators</span>
+            </a>
+            <a href="{{ route('admin.coordinator-types.index') }}" class="sidebar-link {{ request()->routeIs('admin.coordinator-types.*') ? 'active' : '' }}" title="Coordinator Types">
+                <i class="bi bi-gear"></i><span class="sidebar-label">Manage Types</span>
+            </a>
+        @elseif(auth()->user()->isHod())
             <a href="{{ route('hod.dashboard') }}" class="sidebar-link {{ request()->routeIs('hod.dashboard') ? 'active' : '' }}" title="Dashboard">
                 <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
             </a>
@@ -57,8 +67,18 @@
             <a href="{{ route('nba.tasks.archived') }}" class="sidebar-link {{ request()->routeIs('nba.tasks.archived') ? 'active' : '' }}" title="Archived Tasks">
                 <i class="bi bi-archive"></i><span class="sidebar-label">Archived Tasks</span>
             </a>
+        @elseif(auth()->user()->isCoordinator())
+            <a href="{{ route('coordinator.dashboard') }}" class="sidebar-link {{ request()->routeIs('coordinator.dashboard') ? 'active' : '' }}" title="Dashboard">
+                <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
+            </a>
+            <a href="{{ route('coordinator.tasks.index') }}" class="sidebar-link {{ request()->routeIs('coordinator.tasks.*') ? 'active' : '' }}" title="Tasks">
+                <i class="bi bi-list-task"></i><span class="sidebar-label">Tasks</span>
+            </a>
+            <a href="{{ route('calendar.index') }}" class="sidebar-link {{ request()->routeIs('calendar.index') ? 'active' : '' }}" title="Calendar">
+                <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
+            </a>
         @else
-            <a href="{{ route('faculty.dashboard') }}" class="sidebar-link {{ request()->routeIs('faculty.dashboard') ? 'active' : '' }}" title="Dashboard">
+            <a href="{{ route('faculty.dashboard') }}" class="sidebar-link {{ request()->requestIs('faculty.dashboard') ? 'active' : '' }}" title="Dashboard">
                 <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
             </a>
             <a href="{{ route('faculty.tasks.index') }}" class="sidebar-link {{ request()->routeIs('faculty.tasks.*') ? 'active' : '' }}" title="My Tasks">
