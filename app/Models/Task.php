@@ -51,7 +51,7 @@ class Task extends Model
     public function assignees(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'task_user')
-            ->withPivot(['status', 'progress_percentage', 'remarks', 'completed_at', 'role', 'assigned_by', 'assigned_at'])
+            ->withPivot(['status', 'progress_percentage', 'remarks', 'completed_at', 'role', 'assigned_by', 'assigned_at', 'is_reassigned'])
             ->withTimestamps();
     }
 
@@ -120,6 +120,12 @@ class Task extends Model
     public function getIsOverdueAttribute(): bool
     {
         return $this->deadline->isPast() && $this->status !== 'completed';
+    }
+
+    public function getDaysOverdueAttribute(): int
+    {
+        if (!$this->deadline || !$this->is_overdue) return 0;
+        return (int) $this->deadline->diffInDays(Carbon::now());
     }
 
     public function getAssignedDateAttribute(): Carbon

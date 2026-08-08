@@ -9,82 +9,91 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $userId = auth()->id();
-
-        // Scope to NBA Coordinator's tasks only
-        $query = Task::where(function ($q) use ($userId) {
-            $q->where('created_by', $userId)
-              ->orWhereHas('assignees', fn ($aq) => $aq->where('user_id', $userId));
-        })->with(['assignees', 'creator']);
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('priority')) {
-            $query->where('priority', $request->priority);
-        }
-
-        $tasks = $query->latest()->paginate(15)->withQueryString();
+        $departmentId = auth()->user()->department_id;
 
         $stats = [
-            'total'          => (clone $query)->count(),
-            'completed'      => (clone $query)->where('status', 'completed')->count(),
-            'in_progress'    => (clone $query)->where('status', 'in_progress')->count(),
-            'pending_review' => (clone $query)->where('status', 'pending_review')->count(),
-            'overdue'        => (clone $query)->where('deadline', '<', now())->where('status', '!=', 'completed')->count(),
+            'total' => Task::where('department_id', $departmentId)->where('owner_role', 'nba_coordinator')->count(),
+            'completed' => Task::where('department_id', $departmentId)->where('owner_role', 'nba_coordinator')->where('status', 'completed')->count(),
+            'in_progress' => Task::where('department_id', $departmentId)->where('owner_role', 'nba_coordinator')->where('status', 'in_progress')->count(),
+            'overdue' => Task::where('department_id', $departmentId)->where('owner_role', 'nba_coordinator')->where('deadline', '<', now())->where('status', '!=', 'completed')->count(),
         ];
 
+        $tasks = Task::where('department_id', $departmentId)
+            ->where('owner_role', 'nba_coordinator')
+            ->where('status', 'completed')
+            ->withCount('assignees')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+            
         return view('nba.reports.index', compact('tasks', 'stats'));
     }
 
     public function show(Task $task)
     {
+        // Must be completed to view in reports
+        abort_if($task->status !== 'completed', 404);
+        
         $this->authorize('view', $task);
-
-        $task->load(['creator', 'meeting', 'assignees', 'activities', 'auditLogs', 'documents', 'comments']);
-
+        
+        $task->load([
+            'creator', 
+            'meeting', 
+            'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at')
+        ]);
+        
         return view('nba.reports.show', compact('task'));
     }
 
     public function exportCsv(Request $request)
     {
-        $userId = auth()->id();
+        $type = $request->input('type', 'tasks');
+        $departmentId = auth()->user()->department_id;
+        $fileName = 'nba_report_' . $type . '_' . date('Y-m-d') . '.csv';
 
-        $tasks = Task::where(function ($q) use ($userId) {
-            $q->where('created_by', $userId)
-              ->orWhereHas('assignees', fn ($aq) => $aq->where('user_id', $userId));
-        })->with(['assignees', 'creator'])->latest()->get();
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
 
-        $csvHeader = ['Task ID', 'Title', 'Category', 'Priority', 'Status', 'Overall Progress', 'Created By', 'Deadline', 'Assignees'];
-        $csvRows = [];
-
-        foreach ($tasks as $t) {
-            $assigneeNames = $t->assignees->pluck('name')->implode(', ');
-            $csvRows[] = [
-                $t->id,
-                $t->title,
-                $t->category ?? 'NBA Accreditation',
-                ucfirst($t->priority),
-                ucfirst(str_replace('_', ' ', $t->status)),
-                $t->overall_progress . '%',
-                $t->creator->name ?? 'Unknown',
-                $t->deadline->format('Y-m-d H:i'),
-                $assigneeNames,
-            ];
-        }
-
-        $filename = 'nba_report_' . date('Ymd_His') . '.csv';
-
-        return response()->streamDownload(function () use ($csvHeader, $csvRows) {
+        $callback = function () use ($type, $departmentId) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, $csvHeader);
-            foreach ($csvRows as $row) {
-                fputcsv($file, $row);
+
+            if ($type === 'faculty') {
+                fputcsv($file, ['Faculty Name', 'Email', 'Designation', 'Total NBA Tasks Assigned', 'Completed Tasks', 'In Progress Tasks', 'Overdue Tasks']);
+                $faculties = User::where('department_id', $departmentId)->where('role', 'faculty')->get();
+                foreach ($faculties as $f) {
+                    $total = $f->assignedTasks()->where('owner_role', 'nba_coordinator')->count();
+                    $completed = $f->assignedTasks()->where('owner_role', 'nba_coordinator')->wherePivot('status', 'completed')->count();
+                    $inProgress = $f->assignedTasks()->where('owner_role', 'nba_coordinator')->wherePivot('status', 'in_progress')->count();
+                    $overdue = $f->assignedTasks()->where('owner_role', 'nba_coordinator')->wherePivot('status', '!=', 'completed')->where('deadline', '<', now())->count();
+
+                    fputcsv($file, [$f->name, $f->email, $f->designation ?? 'Faculty', $total, $completed, $inProgress, $overdue]);
+                }
+            } else {
+                fputcsv($file, ['Task ID', 'Title', 'Category', 'Priority', 'Status', 'Assigned Date', 'Deadline', 'Overall Progress (%)']);
+                $tasks = Task::where('department_id', $departmentId)->where('owner_role', 'nba_coordinator')->with('assignees')->get();
+                foreach ($tasks as $t) {
+                    fputcsv($file, [
+                        '#TSK-' . $t->id,
+                        $t->title,
+                        $t->category ?? 'NBA Accreditation',
+                        ucfirst($t->priority),
+                        ucfirst(str_replace('_', ' ', $t->status)),
+                        $t->assigned_date->format('Y-m-d'),
+                        $t->deadline->format('Y-m-d'),
+                        $t->overall_progress,
+                    ]);
+                }
             }
+
             fclose($file);
-        }, $filename, ['Content-Type' => 'text/csv']);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

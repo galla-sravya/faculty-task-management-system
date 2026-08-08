@@ -19,7 +19,7 @@
                 <div class="col-md-8">
                     <label class="form-label fw-semibold text-navy">Task Title <span class="text-danger">*</span></label>
                     <input type="text" name="title" class="form-control @error('title') is-invalid @enderror" placeholder="e.g. Prepare NBA Criterion 5 Documentation" value="{{ old('title') }}" required>
-                    @error('title') <div class="invalid-feedback">{{ $message }}</div> @error
+                    @error('title') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-md-4">
@@ -45,7 +45,7 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold text-navy">Deadline <span class="text-danger">*</span></label>
                     <input type="datetime-local" name="deadline" class="form-control @error('deadline') is-invalid @enderror" value="{{ old('deadline') }}" required>
-                    @error('deadline') <div class="invalid-feedback">{{ $message }}</div> @error
+                    @error('deadline') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-md-4">
@@ -68,7 +68,7 @@
                         @endforeach
                     </select>
                     <div class="form-text text-muted">Hold Ctrl / Cmd to select multiple faculty members.</div>
-                    @error('assignees') <div class="invalid-feedback">{{ $message }}</div> @error
+                    @error('assignees') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
 

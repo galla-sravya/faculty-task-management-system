@@ -3,83 +3,198 @@
 namespace App\Http\Controllers\NBA;
 
 use App\Http\Controllers\Controller;
+use App\Services\TaskFilterService;
 use App\Models\Task;
+use App\Models\User;
 use App\Models\Meeting;
 use App\Models\TaskDocument;
 use App\Models\NotificationLog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        protected TaskFilterService $filterService
+    ) {}
+
+    private function nbaTaskQuery(int $departmentId)
+    {
+        return Task::where('department_id', $departmentId)->where('owner_role', 'nba_coordinator');
+    }
+
     public function index()
     {
-        $userId = auth()->id();
+        $user = auth()->user();
+        $departmentId = $user->department_id;
 
-        // 1. My NBA Tasks (created by or assigned to me)
-        $myTasksQuery = Task::where(function ($q) use ($userId) {
-            $q->where('created_by', $userId)
-              ->orWhereHas('assignees', fn ($aq) => $aq->where('user_id', $userId));
-        })->with(['assignees', 'creator']);
+        $baseQuery = $this->nbaTaskQuery($departmentId);
 
-        $myTasks = (clone $myTasksQuery)->latest()->take(10)->get();
+        // Stats summary for ALL NBA tasks in department
+        $totalTasks = (clone $baseQuery)->count();
+        $completedTasks = (clone $baseQuery)->completed()->count();
+        $inProgressTasks = (clone $baseQuery)->inProgress()->count();
+        $overdueTasks = (clone $baseQuery)->overdue()->count();
+        
+        $completionRate = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
 
-        // 2. Pending Reviews (tasks created by me with status pending_review or documents submitted)
-        $pendingReviews = Task::where('created_by', $userId)
+        // Recent Tasks for the table
+        $recentTasks = (clone $baseQuery)
+            ->with(['assignees', 'creator'])
+            ->latest()
+            ->get();
+
+        $upcomingDeadlines = (clone $baseQuery)
             ->where(function ($q) {
-                $q->where('status', 'pending_review')
-                  ->orWhereHas('documents', fn ($dq) => $dq->where('review_status', 'submitted'));
+                $q->where('status', 'pending')->orWhere('status', 'in_progress');
             })
-            ->with(['assignees', 'documents'])
-            ->latest()
-            ->get();
-
-        // 3. Documents Awaiting Approval
-        $documentsAwaitingApproval = TaskDocument::whereHas('task', fn ($tq) => $tq->where('created_by', $userId))
-            ->where('review_status', 'submitted')
-            ->with(['task', 'user'])
-            ->latest()
-            ->get();
-
-        // 4. Upcoming Deadlines (due within next 7 days, not completed)
-        $upcomingDeadlines = (clone $myTasksQuery)
-            ->where('status', '!=', 'completed')
-            ->where('deadline', '>=', now())
-            ->where('deadline', '<=', now()->addDays(7))
             ->orderBy('deadline', 'asc')
-            ->get();
-
-        // 5. My Meetings (organized by or attended by me)
-        $myMeetings = Meeting::where('organized_by', $userId)
-            ->orWhereHas('attendees', fn ($aq) => $aq->where('user_id', $userId))
-            ->latest('scheduled_at')
             ->take(5)
             ->get();
 
-        // 6. My Notifications
-        $myNotifications = NotificationLog::where('user_id', $userId)
-            ->latest('sent_at')
-            ->take(10)
+        // Upcoming Meetings (organized by or attended by NBA Coordinator)
+        $upcomingMeetings = Meeting::where('department_id', $departmentId)
+            ->where('scheduled_at', '>=', Carbon::now())
+            ->where(function ($q) use ($user) {
+                $q->where('organized_by', $user->id)
+                  ->orWhereHas('attendees', fn ($aq) => $aq->where('user_id', $user->id));
+            })
+            ->orderBy('scheduled_at', 'asc')
+            ->take(3)
             ->get();
 
-        // Stats summary for NBA Coordinator ONLY (their own tasks)
-        $stats = [
-            'total'           => (clone $myTasksQuery)->count(),
-            'pending'         => (clone $myTasksQuery)->where('status', 'pending')->count(),
-            'in_progress'     => (clone $myTasksQuery)->where('status', 'in_progress')->count(),
-            'pending_review'  => (clone $myTasksQuery)->where('status', 'pending_review')->count(),
-            'completed'       => (clone $myTasksQuery)->where('status', 'completed')->count(),
-            'overdue'         => (clone $myTasksQuery)->where('deadline', '<', now())->where('status', '!=', 'completed')->count(),
-        ];
+        // Data for filter dropdowns
+        $faculties = User::where('department_id', $departmentId)
+            ->where('role', 'faculty')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $categories = (clone $baseQuery)
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category')
+            ->sort()
+            ->values();
+
+        if ($categories->isEmpty()) {
+            $categories = collect(['NBA Accreditation', 'Academics', 'Research', 'Department']);
+        }
+
+        // Documents awaiting review (NBA-owned tasks only)
+        $documentsAwaitingReview = TaskDocument::where('review_status', 'submitted')
+            ->whereHas('task', fn ($q) => $q->where('department_id', $departmentId)->where('owner_role', 'nba_coordinator'))
+            ->with(['task', 'user'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Recently Completed Tasks (NBA-owned only)
+        $recentlyCompletedTasks = (clone $baseQuery)
+            ->where('status', 'completed')
+            ->latest('updated_at')
+            ->take(5)
+            ->get();
+
+        // Recent Activity Log Stream (NBA-owned tasks only)
+        $recentActivities = \App\Models\TaskActivity::whereHas('task', fn ($q) => $q->where('department_id', $departmentId)->where('owner_role', 'nba_coordinator'))
+            ->with(['user', 'task'])
+            ->latest()
+            ->take(6)
+            ->get();
 
         return view('nba.dashboard', compact(
-            'myTasks',
-            'pendingReviews',
-            'documentsAwaitingApproval',
-            'upcomingDeadlines',
-            'myMeetings',
-            'myNotifications',
-            'stats'
+            'totalTasks', 'completedTasks', 'inProgressTasks', 'overdueTasks',
+            'completionRate', 'recentTasks', 'upcomingDeadlines', 'upcomingMeetings',
+            'faculties', 'categories', 'documentsAwaitingReview',
+            'recentlyCompletedTasks', 'recentActivities'
         ));
+    }
+
+    public function getChartsData(): JsonResponse
+    {
+        $departmentId = auth()->user()->department_id;
+        $baseQuery = $this->nbaTaskQuery($departmentId);
+
+        $taskStatus = [
+            'completed' => (clone $baseQuery)->completed()->count(),
+            'in_progress' => (clone $baseQuery)->inProgress()->count(),
+            'pending' => (clone $baseQuery)->pending()->count(),
+            'overdue' => (clone $baseQuery)->overdue()->count(),
+        ];
+
+        // Faculty Performance (NBA tasks only)
+        $faculties = User::where('department_id', $departmentId)->where('role', 'faculty')->get();
+        $facultyPerformance = [];
+        
+        foreach ($faculties as $faculty) {
+            $totalAssigned = $faculty->assignedTasks()->where('owner_role', 'nba_coordinator')->count();
+            $completed = $faculty->assignedTasks()->where('owner_role', 'nba_coordinator')->wherePivot('status', 'completed')->count();
+            
+            $facultyPerformance['labels'][] = $faculty->name;
+            $facultyPerformance['total'][] = $totalAssigned;
+            $facultyPerformance['completed'][] = $completed;
+        }
+
+        return response()->json([
+            'taskStatus' => $taskStatus,
+            'facultyPerformance' => $facultyPerformance,
+        ]);
+    }
+
+    public function filterTasks(Request $request): JsonResponse
+    {
+        $departmentId = auth()->user()->department_id;
+
+        $filters = [
+            'faculty_id'      => $request->input('faculty_id'),
+            'status'          => $request->input('status'),
+            'priority'        => $request->input('priority'),
+            'category'        => $request->input('category'),
+            'deadline_filter' => $request->input('deadline_filter'),
+            'custom_start'    => $request->input('custom_start'),
+            'custom_end'      => $request->input('custom_end'),
+            'search'          => $request->input('search'),
+        ];
+
+        // Get filtered tasks — pass owner_role for scoping
+        $tasks = $this->filterService->getFilteredTasks($departmentId, $filters, 'nba_coordinator');
+
+        // Get status distribution for charts
+        $stats = $this->filterService->getStatusDistribution($departmentId, $filters, 'nba_coordinator');
+
+        // Build tasks array for JSON response
+        $tasksData = $tasks->map(function (Task $task) {
+            $assigneePhotos = $task->assignees->map(fn ($a) => [
+                'name' => $a->name,
+                'photo_url' => $a->profile_photo_url,
+                'initial' => strtoupper(substr($a->name, 0, 1)),
+            ])->values();
+
+            return [
+                'id'               => $task->id,
+                'title'            => $task->title,
+                'assignees'        => $task->assignees->pluck('name')->implode(', '),
+                'assignee_photos'  => $assigneePhotos,
+                'priority'         => $task->priority,
+                'priority_color'   => $task->priority_color,
+                'status'           => $task->status,
+                'status_label'     => ucfirst(str_replace('_', ' ', $task->status)),
+                'status_color'     => $task->status_color,
+                'assigned_date'    => $task->assigned_date->format('M d, Y'),
+                'deadline'         => $task->deadline->format('M d, Y'),
+                'duration_days'    => $task->duration_in_days,
+                'is_overdue'       => $task->is_overdue,
+                'days_overdue'     => $task->days_overdue,
+                'category'         => $task->category ?? 'General',
+                'overall_progress' => $task->overall_progress,
+                'show_url'         => route('nba.tasks.show', $task),
+            ];
+        });
+
+        return response()->json([
+            'stats'  => $stats,
+            'tasks'  => $tasksData,
+        ]);
     }
 }

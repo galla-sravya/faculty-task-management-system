@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-3 mb-4 border-bottom" style="border-color: var(--border) !important;">
     <div>
         <h1 class="h3 fw-bold mb-1" style="color: var(--navy);">Task Details</h1>
@@ -18,9 +19,14 @@
             </form>
             @endcan
         @else
+            @can('reassign', $task)
+            <button class="btn btn-sm btn-outline-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#reassignTaskModal" style="border-color: var(--navy); color: var(--navy);">
+                <i class="bi bi-arrow-repeat"></i> Reassign Task
+            </button>
+            @endcan
             @can('addCollaborator', $task)
             <button class="btn btn-sm btn-psg-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#addCollaboratorModal">
-                <i class="bi bi-person-plus"></i> Reassign / Add Collaborator
+                <i class="bi bi-person-plus"></i> Add Collaborator
             </button>
             @endcan
             @can('delete', $task)
@@ -168,7 +174,7 @@
                         <div class="fw-semibold {{ $task->is_overdue ? 'text-danger' : '' }}" style="{{ !$task->is_overdue ? 'color: var(--navy);' : '' }}; font-size: 0.82rem;">
                             <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y') }}
                             @if($task->is_overdue)
-                                <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue</span>
+                                <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>
                             @endif
                         </div>
                     </div>
@@ -737,6 +743,72 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-psg-primary btn-sm d-flex align-items-center gap-1">
                         <i class="bi bi-person-plus"></i> Assign Collaborator(s)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
+
+<!-- Reassign Task Modal -->
+@can('reassign', $task)
+<div class="modal fade" id="reassignTaskModal" tabindex="-1" aria-labelledby="reassignTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ route('tasks.reassign', $task) }}">
+                @csrf
+                <div class="modal-header border-bottom py-3" style="background: linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%);">
+                    <h5 class="modal-title text-white fw-bold" id="reassignTaskModalLabel">
+                        <i class="bi bi-arrow-repeat me-2"></i>Reassign Task
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle-fill text-warning mt-1"></i>
+                        <span>Reassigning will <strong>completely transfer</strong> this task from the selected assignee to a new person. The original assignee will be removed from the task.</span>
+                    </div>
+
+                    <!-- Select Current Assignee to Replace -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Replace Current Assignee <span class="text-danger">*</span></label>
+                        <select name="old_assignee_id" class="form-select" required>
+                            <option value="">— Select who to replace —</option>
+                            @foreach($task->assignees as $assignee)
+                                <option value="{{ $assignee->id }}">{{ $assignee->name }} — {{ $assignee->designation ?? 'Faculty' }} ({{ ucfirst($assignee->pivot->role ?? 'owner') }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Select New Assignee -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Assign To <span class="text-danger">*</span></label>
+                        <select name="new_assignee_id" class="form-select" required>
+                            <option value="">— Select new assignee —</option>
+                            @php
+                                $availableForReassign = \App\Models\User::where('department_id', $task->department_id)
+                                    ->where('role', 'faculty')
+                                    ->get();
+                            @endphp
+                            @forelse($availableForReassign as $f)
+                                <option value="{{ $f->id }}">{{ $f->name }} — {{ $f->designation ?? 'Faculty' }}</option>
+                            @empty
+                                <option disabled>No available faculty</option>
+                            @endforelse
+                        </select>
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Reason for Reassignment</label>
+                        <textarea name="reason" class="form-control" rows="3" placeholder="Why is this task being reassigned?"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm d-flex align-items-center gap-1 text-white fw-medium" style="background-color: var(--navy);">
+                        <i class="bi bi-arrow-repeat"></i> Reassign Task
                     </button>
                 </div>
             </form>

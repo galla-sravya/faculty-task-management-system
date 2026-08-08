@@ -21,13 +21,12 @@ class TaskController extends Controller
 
     public function index(Request $request)
     {
-        $userId = auth()->id();
+        $departmentId = auth()->user()->department_id;
 
-        // Scope to NBA Coordinator's tasks (created by or assigned to them)
-        $query = Task::where(function ($q) use ($userId) {
-            $q->where('created_by', $userId)
-              ->orWhereHas('assignees', fn ($aq) => $aq->where('user_id', $userId));
-        })->with(['assignees', 'meeting']);
+        // Scope to NBA Coordinator's tasks by owner_role + department
+        $query = Task::where('department_id', $departmentId)
+            ->where('owner_role', 'nba_coordinator')
+            ->with(['assignees', 'meeting']);
 
         if ($request->filled('status')) {
             if ($request->status === 'overdue') {
@@ -262,18 +261,28 @@ class TaskController extends Controller
 
     public function archived(Request $request)
     {
-        $userId = auth()->id();
+        $departmentId = auth()->user()->department_id;
 
         $query = Task::onlyTrashed()
-            ->where('created_by', $userId)
+            ->where('department_id', $departmentId)
+            ->where('owner_role', 'nba_coordinator')
             ->with(['assignees', 'creator']);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%");
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhereHas('assignees', fn ($aq) => $aq->where('name', 'like', "%{$search}%"));
             });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
         }
 
         $archivedTasks = $query->latest('deleted_at')->paginate(10)->withQueryString();

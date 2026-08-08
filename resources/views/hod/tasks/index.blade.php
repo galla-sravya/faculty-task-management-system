@@ -73,7 +73,7 @@
                             <span class="{{ $task->is_overdue ? 'text-danger fw-semibold' : 'text-muted' }}" style="font-size: 0.85rem;">
                                 <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y') }}
                                 @if($task->is_overdue)
-                                    <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue</span>
+                                    <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>
                                 @endif
                             </span>
                         </td>

@@ -11,7 +11,7 @@
             </p>
         </div>
     </div>
-    <a href="{{ route('hod.faculty.index') }}" class="btn btn-sm btn-outline-secondary fw-medium d-flex align-items-center gap-1">
+    <a href="{{ route('nba.faculty.index') }}" class="btn btn-sm btn-outline-secondary fw-medium d-flex align-items-center gap-1">
         <i class="bi bi-arrow-left"></i> Back to Faculty List
     </a>
 </div>
@@ -85,7 +85,7 @@
 <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
     <div class="card-header bg-white border-bottom py-3">
         <h6 class="m-0 fw-bold" style="color: var(--navy);">
-            <i class="bi bi-list-task me-2" style="color: var(--navy);"></i>Assigned Tasks & Progress
+            <i class="bi bi-list-task me-2" style="color: var(--navy);"></i>NBA Assigned Tasks & Progress
         </h6>
     </div>
     <div class="card-body p-0">
@@ -122,7 +122,7 @@
                     @endphp
                     <tr>
                         <td class="ps-4">
-                            <a href="{{ route('hod.tasks.show', $task) }}" class="text-decoration-none fw-semibold" style="color: var(--navy);">
+                            <a href="{{ route('nba.tasks.show', $task) }}" class="text-decoration-none fw-semibold" style="color: var(--navy);">
                                 {{ $task->title }}
                             </a>
                         </td>
@@ -158,7 +158,7 @@
                             </span>
                         </td>
                         <td class="pe-4">
-                            <a href="{{ route('hod.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary fw-medium px-3" style="font-size: 0.8rem; border-color: var(--navy); color: var(--navy);">
+                            <a href="{{ route('nba.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary fw-medium px-3" style="font-size: 0.8rem; border-color: var(--navy); color: var(--navy);">
                                 View Task
                             </a>
                         </td>
@@ -167,7 +167,7 @@
                     <tr>
                         <td colspan="7" class="text-center py-5 text-muted">
                             <i class="bi bi-clipboard-x fs-2 d-block mb-2 text-secondary"></i>
-                            No tasks assigned to this faculty member yet.
+                            No NBA tasks assigned to this faculty member yet.
                         </td>
                     </tr>
                     @endforelse

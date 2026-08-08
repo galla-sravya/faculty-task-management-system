@@ -108,6 +108,27 @@ class TaskPolicy
         return $task->assignees()->where('user_id', $user->id)->exists();
     }
 
+    public function reassign(User $user, Task $task): bool
+    {
+        \Illuminate\Support\Facades\Log::info("TaskPolicy@reassign called for User {$user->id} ({$user->role}) on Task {$task->id}");
+        
+        if ($user->isHod()) {
+            $result = $user->department_id === $task->department_id;
+            \Illuminate\Support\Facades\Log::info("HOD check: {$user->department_id} === {$task->department_id} -> " . ($result ? 'true' : 'false'));
+            return $result;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            $result = $task->created_by === $user->id;
+            \Illuminate\Support\Facades\Log::info("NBA check: {$task->created_by} === {$user->id} -> " . ($result ? 'true' : 'false'));
+            return $result;
+        }
+
+        $result = $task->assignees()->where('user_id', $user->id)->exists();
+        \Illuminate\Support\Facades\Log::info("Faculty check: assignee exists -> " . ($result ? 'true' : 'false'));
+        return $result;
+    }
+
     public function removeCollaborator(User $user, Task $task): bool
     {
         if ($user->isHod()) {

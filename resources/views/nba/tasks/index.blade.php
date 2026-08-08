@@ -89,7 +89,7 @@
                                     <span class="text-muted fw-medium" style="font-size:0.75rem;">{{ $task->overall_progress }}%</span>
                                 </div>
                             </td>
-                            <td><span class="{{ $task->is_overdue ? 'text-danger fw-bold' : '' }}">{{ $task->deadline->format('M d, Y') }}</span></td>
+                            <td><span class="{{ $task->is_overdue ? 'text-danger fw-bold' : '' }}">{{ $task->deadline->format('M d, Y') }}@if($task->is_overdue) <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>@endif</span></td>
                             <td class="pe-4 text-end" onclick="event.stopPropagation();">
                                 <div class="d-inline-flex gap-1">
                                     <a href="{{ route('nba.tasks.show', $task) }}" class="btn btn-sm btn-outline-navy py-1 px-2" style="font-size: 0.8rem;">View</a>

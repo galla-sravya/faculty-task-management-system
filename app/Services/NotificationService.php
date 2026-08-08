@@ -175,6 +175,52 @@ class NotificationService
         );
     }
 
+    public function notifyTaskReassigned(Task $task, User $oldAssignee, User $newAssignee, ?string $reason = null, ?User $actor = null): void
+    {
+        $actor = $actor ?? auth()->user();
+        $actorName = $actor?->name ?? 'System';
+        $reasonText = $reason ? " Reason: {$reason}" : '';
+
+        $this->recordAudit($task->id, $actor?->id, 'task_reassigned', $oldAssignee->name, $newAssignee->name);
+        $this->recordActivity($task->id, $actor?->id, 'reassigned', "{$actorName} reassigned task from {$oldAssignee->name} to {$newAssignee->name}.{$reasonText}");
+
+        // Notify the new assignee
+        $this->logNotification(
+            $newAssignee->id,
+            'task_reassigned',
+            $task->id,
+            Task::class,
+            "Task \"{$task->title}\" has been reassigned to you by {$actorName}."
+        );
+
+        if ($newAssignee->email) {
+            Mail::to($newAssignee)->send(new TaskAssigned($task));
+        }
+
+        // Notify the old assignee
+        $this->logNotification(
+            $oldAssignee->id,
+            'task_reassigned',
+            $task->id,
+            Task::class,
+            "Task \"{$task->title}\" has been reassigned from you to {$newAssignee->name} by {$actorName}."
+        );
+
+        // Notify the HOD if a non-HOD user did the reassignment
+        if ($actor && !$actor->isHod()) {
+            $hod = User::where('department_id', $task->department_id)->where('role', 'hod')->first();
+            if ($hod && $hod->id !== $actor->id) {
+                $this->logNotification(
+                    $hod->id,
+                    'task_reassigned',
+                    $task->id,
+                    Task::class,
+                    "{$actorName} reassigned task \"{$task->title}\" from {$oldAssignee->name} to {$newAssignee->name}.{$reasonText}"
+                );
+            }
+        }
+    }
+
     public function notifyTaskArchived(Task $task, ?User $actor = null): void
     {
         $actor = $actor ?? auth()->user();

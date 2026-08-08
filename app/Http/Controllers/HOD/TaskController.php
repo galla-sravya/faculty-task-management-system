@@ -22,6 +22,7 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $query = Task::where('department_id', auth()->user()->department_id)
+            ->where('owner_role', 'hod')
             ->with(['assignees', 'meeting']);
 
         if ($request->filled('status')) {
@@ -73,6 +74,7 @@ class TaskController extends Controller
             'priority'      => $validated['priority'],
             'deadline'      => $validated['deadline'],
             'created_by'    => auth()->id(),
+            'owner_role'    => 'hod',
             'department_id' => auth()->user()->department_id,
             'meeting_id'    => $validated['meeting_id'] ?? null,
             'status'        => 'pending',
@@ -264,6 +266,7 @@ class TaskController extends Controller
     {
         $query = Task::onlyTrashed()
             ->where('department_id', auth()->user()->department_id)
+            ->where('owner_role', 'hod')
             ->with(['assignees', 'creator']);
 
         if ($request->filled('search')) {

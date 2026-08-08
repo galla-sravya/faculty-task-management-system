@@ -22,9 +22,14 @@
         <p class="text-muted small mb-0">Report your progress, add remarks, and manage task collaborators</p>
     </div>
     <div class="d-flex gap-2">
+        @can('reassign', $task)
+        <button class="btn btn-sm btn-outline-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#reassignTaskModal" style="border-color: var(--navy); color: var(--navy);">
+            <i class="bi bi-arrow-repeat"></i> Reassign Task
+        </button>
+        @endcan
         @can('addCollaborator', $task)
         <button class="btn btn-sm btn-psg-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#addCollaboratorModal">
-            <i class="bi bi-person-plus"></i> Reassign / Add Collaborator
+            <i class="bi bi-person-plus"></i> Add Collaborator
         </button>
         @endcan
         <a href="{{ route('faculty.tasks.index') }}" class="btn btn-sm btn-outline-secondary fw-medium d-flex align-items-center gap-1">
@@ -71,7 +76,15 @@
                 </h6>
             </div>
             <div class="card-body p-4">
-                <h4 class="fw-bold mb-2" style="color: var(--navy);">{{ $task->title }}</h4>
+                <h4 class="fw-bold mb-2 d-flex align-items-center gap-2" style="color: var(--navy);">
+                    {{ $task->title }}
+                    @php $myPivot = $task->assignees->where('id', auth()->id())->first()?->pivot; @endphp
+                    @if($myPivot && $myPivot->is_reassigned)
+                        <span class="badge rounded-pill bg-warning text-dark border border-warning" style="font-size: 0.7rem; padding: 0.3rem 0.6rem;">
+                            <i class="bi bi-arrow-repeat me-1"></i>Reassigned
+                        </span>
+                    @endif
+                </h4>
                 <p class="text-muted mb-0">{{ $task->description ?? 'No description.' }}</p>
 
                 <div class="mt-4 pt-3 border-top" style="border-color: var(--border) !important;">
@@ -111,7 +124,7 @@
                                     <span class="fw-semibold {{ $task->is_overdue ? 'text-danger' : '' }}" style="{{ !$task->is_overdue ? 'color: var(--navy);' : '' }}">
                                         <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y h:i A') }}
                                         @if($task->is_overdue)
-                                            <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue</span>
+                                            <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>
                                         @endif
                                     </span>
                                     <span class="badge bg-light text-muted border ms-2" style="font-size: 0.7rem;">
@@ -694,6 +707,77 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-psg-primary btn-sm d-flex align-items-center gap-1">
                         <i class="bi bi-person-plus"></i> Assign Collaborator(s)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
+
+<!-- Reassign Task Modal -->
+@can('reassign', $task)
+<div class="modal fade" id="reassignTaskModal" tabindex="-1" aria-labelledby="reassignTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ route('tasks.reassign', $task) }}">
+                @csrf
+                <input type="hidden" name="old_assignee_id" value="{{ auth()->id() }}">
+                <div class="modal-header border-bottom py-3" style="background: linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%);">
+                    <h5 class="modal-title text-white fw-bold" id="reassignTaskModalLabel">
+                        <i class="bi bi-arrow-repeat me-2"></i>Reassign My Task
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle-fill text-warning mt-1"></i>
+                        <span>This will <strong>completely transfer</strong> your assignment to another faculty member. You will be removed from this task and the new person will take over.</span>
+                    </div>
+
+                    <!-- Current Assignee Info (read-only) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Reassigning From</label>
+                        <div class="form-control bg-light" style="pointer-events: none;">
+                            <i class="bi bi-person me-1"></i>{{ auth()->user()->name }} (You)
+                        </div>
+                    </div>
+
+                    <!-- Select New Assignee -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Transfer To <span class="text-danger">*</span></label>
+                        <select name="new_assignee_id" class="form-select" required>
+                            <option value="">— Select new assignee —</option>
+                            @php
+                                $availableForReassign = \App\Models\User::where('department_id', $task->department_id)
+                                    ->where('role', 'faculty')
+                                    ->where('id', '!=', auth()->id())
+                                    ->get();
+                            @endphp
+                            @forelse($availableForReassign as $f)
+                                <option value="{{ $f->id }}">{{ $f->name }} — {{ $f->designation ?? 'Faculty' }}</option>
+                            @empty
+                                <option disabled>No available faculty</option>
+                            @endforelse
+                        </select>
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Reason for Reassignment</label>
+                        <textarea name="reason" class="form-control" rows="3" placeholder="Why are you transferring this task?"></textarea>
+                    </div>
+
+                    <!-- HOD Notification Note -->
+                    <div class="alert alert-info py-2 px-3 mb-2 small d-flex align-items-center gap-2">
+                        <i class="bi bi-bell-fill text-info"></i>
+                        <span>The HOD will be automatically notified about this reassignment.</span>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm d-flex align-items-center gap-1 text-white fw-medium" style="background-color: var(--navy);">
+                        <i class="bi bi-arrow-repeat"></i> Reassign Task
                     </button>
                 </div>
             </form>

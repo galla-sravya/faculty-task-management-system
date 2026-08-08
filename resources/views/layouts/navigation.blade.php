@@ -45,6 +45,9 @@
             <a href="{{ route('nba.meetings.index') }}" class="sidebar-link {{ request()->routeIs('nba.meetings.*') ? 'active' : '' }}" title="NBA Meetings">
                 <i class="bi bi-calendar-event"></i><span class="sidebar-label">NBA Meetings</span>
             </a>
+            <a href="{{ route('nba.faculty.index') }}" class="sidebar-link {{ request()->routeIs('nba.faculty.*') ? 'active' : '' }}" title="Faculty">
+                <i class="bi bi-people"></i><span class="sidebar-label">Faculty</span>
+            </a>
             <a href="{{ route('calendar.index') }}" class="sidebar-link {{ request()->routeIs('calendar.index') ? 'active' : '' }}" title="Calendar">
                 <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
             </a>

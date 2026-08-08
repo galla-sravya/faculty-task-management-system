@@ -80,7 +80,7 @@
                                     <span class="fw-semibold small">{{ $t->overall_progress }}%</span>
                                 </div>
                             </td>
-                            <td><span class="{{ $t->is_overdue ? 'text-danger fw-bold' : '' }}">{{ $t->deadline->format('M d, Y') }}</span></td>
+                            <td><span class="{{ $t->is_overdue ? 'text-danger fw-bold' : '' }}">{{ $t->deadline->format('M d, Y') }}@if($t->is_overdue) <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $t->days_overdue }} {{ $t->days_overdue === 1 ? 'day' : 'days' }}</span>@endif</span></td>
                             <td class="pe-4 text-end">
                                 <a href="{{ route('nba.reports.show', $t) }}" class="btn btn-sm btn-outline-navy py-1 px-2" style="font-size:0.78rem;">Detailed Report</a>
                             </td>

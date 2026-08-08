@@ -18,26 +18,44 @@ class TaskController extends Controller
 
     public function index(Request $request)
     {
-        $query = auth()->user()->assignedTasks();
-        
+        $user = auth()->user();
+
+        // Determine active source tab (default: 'hod')
+        $source = $request->input('source', 'hod');
+
+        // Base query for assigned tasks
+        $hodQuery = $user->assignedTasks()->where('owner_role', 'hod');
+        $nbaQuery = $user->assignedTasks()->where('owner_role', 'nba_coordinator');
+
+        // Apply status filter
         if ($request->filled('status')) {
             if ($request->status === 'overdue') {
-                $query->where('deadline', '<', now())
-                      ->wherePivot('status', '!=', 'completed');
+                $hodQuery->where('deadline', '<', now())->wherePivot('status', '!=', 'completed');
+                $nbaQuery->where('deadline', '<', now())->wherePivot('status', '!=', 'completed');
             } else {
-                $query->wherePivot('status', $request->status);
+                $hodQuery->wherePivot('status', $request->status);
+                $nbaQuery->wherePivot('status', $request->status);
             }
         }
-        
-        $tasks = $query->orderBy('deadline', 'asc')->paginate(10);
-        
-        return view('faculty.tasks.index', compact('tasks'));
+
+        // Counts for tab badges
+        $hodCount = (clone $hodQuery)->count();
+        $nbaCount = (clone $nbaQuery)->count();
+
+        // Get paginated tasks for active source
+        if ($source === 'nba') {
+            $tasks = $nbaQuery->orderBy('deadline', 'asc')->paginate(10)->withQueryString();
+        } else {
+            $tasks = $hodQuery->orderBy('deadline', 'asc')->paginate(10)->withQueryString();
+        }
+
+        return view('faculty.tasks.index', compact('tasks', 'source', 'hodCount', 'nbaCount'));
     }
 
     public function show(Task $task)
     {
         $this->authorize('updateProgress', $task);
-        $task->load(['creator', 'meeting', 'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at')]);
+        $task->load(['creator', 'meeting', 'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at', 'is_reassigned')]);
         
         $pivot = $task->assignees()->where('user_id', auth()->id())->first()->pivot;
         

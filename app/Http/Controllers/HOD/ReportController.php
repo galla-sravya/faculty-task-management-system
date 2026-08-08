@@ -11,6 +11,7 @@ class ReportController extends Controller
     public function index()
     {
         $tasks = Task::where('department_id', auth()->user()->department_id)
+            ->where('owner_role', 'hod')
             ->where('status', 'completed')
             ->withCount('assignees')
             ->orderBy('updated_at', 'desc')
@@ -65,7 +66,7 @@ class ReportController extends Controller
                 }
             } else {
                 fputcsv($file, ['Task ID', 'Title', 'Category', 'Priority', 'Status', 'Assigned Date', 'Deadline', 'Overall Progress (%)']);
-                $tasks = Task::where('department_id', $departmentId)->with('assignees')->get();
+                $tasks = Task::where('department_id', $departmentId)->where('owner_role', 'hod')->with('assignees')->get();
                 foreach ($tasks as $t) {
                     fputcsv($file, [
                         '#TSK-' . $t->id,

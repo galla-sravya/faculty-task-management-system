@@ -4,8 +4,6 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Task;
 
@@ -26,9 +24,9 @@ class DeadlineReminder extends Mailable
     }
 
     /**
-     * Get the message envelope.
+     * Build the message.
      */
-    public function envelope(): Envelope
+    public function build()
     {
         $subject = match ($this->stage) {
             '75pct' => 'Time Running Out: "' . $this->task->title . '" — 75% of your time is used, deadline approaching',
@@ -36,28 +34,25 @@ class DeadlineReminder extends Mailable
             default => 'Reminder: Task "' . $this->task->title . '" deadline reminder',
         };
 
-        return new Envelope(
-            subject: $subject,
-        );
-    }
+        $logoPath = public_path('images/psg-logo-email.png');
 
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            markdown: 'emails.deadline-reminder',
-        );
-    }
+        $mail = $this->subject($subject)
+            ->markdown('emails.deadline-reminder', [
+                'task' => $this->task,
+                'stage' => $this->stage,
+            ]);
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
+        // Embed logo as CID inline attachment
+        if (file_exists($logoPath)) {
+            $mail->withSymfonyMessage(function ($message) use ($logoPath) {
+                $message->embed(
+                    fopen($logoPath, 'r'),
+                    'psg-logo.png',
+                    'image/png'
+                );
+            });
+        }
+
+        return $mail;
     }
 }
