@@ -236,6 +236,9 @@
 
     <!-- Voice Input JS (Speech-to-Text for all textareas) -->
     <script src="{{ asset('js/voice-input.js') }}?v={{ filemtime(public_path('js/voice-input.js')) }}"></script>
+    
+    <!-- Task Table Filter JS -->
+    <script src="{{ asset('js/task-table-filter.js') }}?v={{ filemtime(public_path('js/task-table-filter.js')) }}"></script>
 
     @yield('scripts')
 </body>

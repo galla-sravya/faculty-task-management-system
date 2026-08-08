@@ -154,6 +154,7 @@ class DashboardController extends Controller
                 'duration_days'    => $task->duration_in_days,
                 'is_overdue'       => $task->is_overdue,
                 'days_overdue'     => $task->days_overdue,
+                'smart_deadline'   => $task->smart_deadline,
                 'category'         => $task->category ?? 'General',
                 'overall_progress' => $task->overall_progress,
                 'show_url'         => route('hod.tasks.show', $task),

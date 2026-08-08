@@ -145,7 +145,7 @@
                                 <form action="{{ route('tasks.checklist.destroy', [$task, $item]) }}" method="POST" class="m-0">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-link p-0 text-danger text-decoration-none border-0 bg-transparent" title="Delete Subtask">
+                                    <button type="button" class="btn btn-link p-0 text-danger text-decoration-none border-0 bg-transparent" title="Delete Subtask" onclick="if (confirm('Are you sure you want to remove this work item?')) { this.closest('form').submit(); }">
                                         <i class="bi bi-trash small"></i>
                                     </button>
                                 </form>

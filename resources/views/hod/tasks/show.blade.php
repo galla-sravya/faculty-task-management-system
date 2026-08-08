@@ -285,57 +285,7 @@
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- TASK SUBTASKS / CHECKLIST SECTION                             -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
-    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
-        <h6 class="m-0 fw-bold" style="color: var(--navy);">
-            <i class="bi bi-card-checklist me-2" style="color: var(--gold);"></i>Subtasks & Checklist
-        </h6>
-        @php $items = $task->checklistItems; @endphp
-        @if($items->isNotEmpty())
-            <span class="badge bg-light text-dark border" style="font-size:0.75rem;">
-                {{ $items->where('is_completed', true)->count() }} / {{ $items->count() }} Completed
-            </span>
-        @endif
-    </div>
-    <div class="card-body p-4">
-        <!-- Add Subtask Form -->
-        <form action="{{ route('tasks.checklist.store', $task) }}" method="POST" class="d-flex gap-2 mb-3">
-            @csrf
-            <input type="text" name="title" class="form-control border" placeholder="Add a new subtask / checklist item..." required style="font-size:0.85rem;">
-            <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm px-3" style="background-color: var(--navy);">
-                <i class="bi bi-plus-lg me-1"></i>Add Item
-            </button>
-        </form>
 
-        <!-- Checklist Items List -->
-        <div class="list-group list-group-flush">
-            @forelse($items as $item)
-                <div class="list-group-item px-2 py-2.5 border-bottom d-flex align-items-center justify-content-between">
-                    <form action="{{ route('tasks.checklist.toggle', [$task, $item]) }}" method="POST" class="d-flex align-items-center gap-2 flex-grow-1">
-                        @csrf
-                        <input type="checkbox" class="form-check-input mt-0" onchange="this.form.submit()" {{ $item->is_completed ? 'checked' : '' }} style="cursor:pointer;width:18px;height:18px;">
-                        <span class="{{ $item->is_completed ? 'text-decoration-line-through text-muted' : 'text-dark fw-medium' }}" style="font-size:0.88rem;">
-                            {{ $item->title }}
-                        </span>
-                        @if($item->is_completed && $item->completedByUser)
-                            <span class="badge bg-light text-muted border ms-2" style="font-size:0.65rem;">Done by {{ $item->completedByUser->name }}</span>
-                        @endif
-                    </form>
-                    <form action="{{ route('tasks.checklist.destroy', [$task, $item]) }}" method="POST" class="m-0" onsubmit="return confirm('Delete subtask item?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-2"><i class="bi bi-trash"></i></button>
-                    </form>
-                </div>
-            @empty
-                <div class="text-center py-3 text-muted small">No subtask items created yet.</div>
-            @endforelse
-        </div>
-    </div>
-</div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- DISCUSSION & COMMENTS SECTION                                 -->
@@ -391,6 +341,234 @@
         </div>
     </div>
 </div>
+
+@if(session('error'))
+<div id="errorToastPopup" class="position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg rounded-3 p-3 bg-white border border-danger d-flex align-items-center gap-3"
+     style="z-index: 1090; min-width: 320px; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;">
+    <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold text-dark small">Action Failed</div>
+        <div class="text-secondary small" style="font-size: 0.83rem; line-height: 1.35;">{{ session('error') }}</div>
+    </div>
+    <button type="button" class="btn-close ms-2 small" onclick="document.getElementById('errorToastPopup').remove()"></button>
+</div>
+<script>
+    setTimeout(function() {
+        const toast = document.getElementById('errorToastPopup');
+        if (toast) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => toast.remove(), 400);
+        }
+    }, 5000);
+</script>
+@endif
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TASK SUBTASKS / CHECKLIST SECTION (FOLDED ACCORDION VIEW)     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mt-4 mb-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h6 class="m-0 fw-bold d-flex align-items-center gap-2" style="color: var(--navy);">
+                <i class="bi bi-card-checklist" style="color: var(--gold); font-size: 1.2rem;"></i>Subtasks & Checklist
+            </h6>
+            <span class="text-muted small" style="font-size:0.75rem;">Create mandatory requirements or review faculty collaborator work items</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @php $items = $task->checklistItems; @endphp
+            <span class="badge bg-light text-dark border px-2.5 py-1.5" style="font-size:0.75rem;">
+                <i class="bi bi-list-task me-1 text-primary"></i>{{ $items->count() }} {{ Str::plural('Item', $items->count()) }}
+                @if($items->isNotEmpty())
+                    · {{ $items->where('status', 'completed')->count() }} Completed
+                @endif
+            </span>
+            @can('manageChecklist', $task)
+            <button class="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-1" style="background-color: var(--navy); font-size:0.78rem;" data-bs-toggle="collapse" data-bs-target="#addChecklistItemCollapseHOD">
+                <i class="bi bi-plus-lg"></i> Add Requirement / Work Item
+            </button>
+            @endcan
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <!-- Add Subtask / HOD Requirement Collapsible Form -->
+        @can('manageChecklist', $task)
+        <div class="collapse mb-4" id="addChecklistItemCollapseHOD">
+            <div class="card card-body bg-light border-0 shadow-none rounded-3 p-3">
+                <h6 class="fw-bold text-dark mb-2" style="font-size:0.88rem;"><i class="bi bi-plus-circle me-1 text-primary"></i>Create New Requirement / Subtask</h6>
+                <form action="{{ route('tasks.checklist.store', $task) }}" method="POST">
+                    @csrf
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold text-dark small mb-1">Subtask Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" class="form-control form-control-sm border" placeholder="e.g. Final documentation must be submitted for review" required style="font-size:0.85rem;">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold text-dark small mb-1">Assign To</label>
+                            <select name="assigned_to" class="form-select form-select-sm border" style="font-size:0.85rem;">
+                                <option value="all">Both / All Collaborators (Shared)</option>
+                                @foreach($task->assignees as $assignee)
+                                    <option value="{{ $assignee->id }}">
+                                        {{ $assignee->name }} ({{ $assignee->pivot->role === 'owner' ? 'Owner' : 'Collaborator' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark small mb-1">Optional Description / Details</label>
+                            <textarea name="description" class="form-control form-control-sm border" rows="2" placeholder="Provide extra details or mandatory criteria..." style="font-size:0.83rem;"></textarea>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#addChecklistItemCollapseHOD">Cancel</button>
+                            <button type="submit" class="btn btn-sm text-white fw-medium px-3" style="background-color: var(--navy);">
+                                <i class="bi bi-check-lg me-1"></i>Save Requirement
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        @endcan
+
+        <!-- Folded Work Items Accordion List -->
+        <div class="d-flex flex-column gap-2" id="checklistAccordionHOD">
+            @forelse($items as $item)
+                @php
+                    $isHodReq = $item->isHodRequirement();
+                    $badgeDetails = $item->status_badge;
+                @endphp
+                <div class="card border rounded-3 shadow-none overflow-hidden" style="border-color: var(--border) !important;">
+                    <!-- Collapsed Header Row (Clickable) -->
+                    <div class="card-header bg-white py-2.5 px-3 border-0 d-flex align-items-center justify-content-between cursor-pointer checklist-collapse-header"
+                         data-bs-toggle="collapse"
+                         data-bs-target="#checklistItemCollapseHOD{{ $item->id }}"
+                         aria-expanded="false"
+                         aria-controls="checklistItemCollapseHOD{{ $item->id }}"
+                         style="cursor: pointer; border-left: 4px solid {{ $isHodReq ? 'var(--gold, #d4a017)' : 'var(--navy, #12275a)' }} !important;">
+                        
+                        <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden me-2">
+                            <i class="bi bi-chevron-right collapse-chevron text-muted flex-shrink-0" style="transition: transform 0.2s ease; font-size: 0.8rem;"></i>
+                            <span class="fw-semibold text-dark text-truncate {{ $item->status === 'completed' ? 'text-decoration-line-through text-muted' : '' }}" style="font-size: 0.88rem;">
+                                {{ $item->title }}
+                            </span>
+                        </div>
+
+                        <!-- Header Right Metadata -->
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                            @if($isHodReq)
+                                <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;" title="Mandatory requirement defined by HOD">
+                                    HOD Requirement
+                                </span>
+                            @else
+                                <span class="badge bg-light text-primary border" style="font-size: 0.65rem;">
+                                    Work Item
+                                </span>
+                            @endif
+
+                            <span class="text-muted small d-none d-md-inline" style="font-size: 0.72rem;">
+                                Assigned to {{ $item->assignee ? $item->assignee->name : 'Both' }}
+                            </span>
+
+                            <span class="badge rounded-pill px-2 py-0.8" style="background-color: {{ $badgeDetails['bg'] }}; color: {{ $badgeDetails['text'] }}; font-weight: 600; font-size: 0.68rem;">
+                                {{ $badgeDetails['label'] }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Expanded Content Area -->
+                    <div class="collapse" id="checklistItemCollapseHOD{{ $item->id }}">
+                        <div class="card-body p-3 bg-light border-top" style="font-size: 0.83rem;">
+                            @if($item->description)
+                                <div class="mb-3 p-2 bg-white rounded border text-secondary" style="font-size: 0.82rem; line-height: 1.45;">
+                                    <strong class="text-dark d-block mb-0.5">Description:</strong>
+                                    {{ $item->description }}
+                                </div>
+                            @endif
+
+                            <div class="row g-2 mb-3 text-muted">
+                                <div class="col-sm-6">
+                                    <i class="bi bi-person-circle me-1 text-primary"></i><strong>Created by:</strong> {{ $item->creator->name ?? 'System' }} {{ $isHodReq ? '(HOD)' : '' }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="bi bi-calendar-event me-1 text-secondary"></i><strong>Created at:</strong> {{ $item->created_at->format('M d, Y g:i A') }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="bi bi-person-check me-1 text-success"></i><strong>Assigned to:</strong> {{ $item->assignee->name ?? 'Both / All Collaborators' }}
+                                </div>
+                                <div class="col-sm-6">
+                                    <i class="bi bi-clock-history me-1 text-info"></i><strong>Status:</strong> {{ $badgeDetails['label'] }}
+                                </div>
+                                @if($item->status === 'completed' && $item->completedByUser)
+                                    <div class="col-12 text-success">
+                                        <i class="bi bi-check-all me-1"></i><strong>Completed by:</strong> {{ $item->completedByUser->name }} · {{ $item->completed_at ? $item->completed_at->format('M d, Y g:i A') : '' }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Expanded Action Controls -->
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation();">
+                                    @can('updateChecklistItemStatus', [$task, $item])
+                                        <form action="{{ route('tasks.checklist.updateStatus', [$task, $item]) }}" method="POST" class="d-inline" onclick="event.stopPropagation();">
+                                            @csrf
+                                            @method('PATCH')
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label class="fw-semibold text-dark mb-0 small">Status:</label>
+                                                <select name="status" class="form-select form-select-sm border fw-semibold" onchange="this.form.submit()" style="font-size: 0.75rem; width: auto; background-color: #fff;">
+                                                    <option value="pending" {{ $item->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                                    <option value="in_progress" {{ $item->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                                    <option value="completed" {{ $item->status === 'completed' ? 'selected' : '' }}>Completed</option>
+                                                </select>
+                                            </div>
+                                        </form>
+                                    @endcan
+                                </div>
+
+                                <div onclick="event.stopPropagation();">
+                                    @can('deleteChecklistItem', [$task, $item])
+                                        <form action="{{ route('tasks.checklist.destroy', [$task, $item]) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to remove this work item?');" onclick="event.stopPropagation();">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.75rem;" onclick="event.stopPropagation();">
+                                                <i class="bi bi-trash"></i> Delete Work Item
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-card-checklist fs-3 d-block mb-1 text-secondary"></i>
+                    <span class="small">No subtasks or work items added yet. HOD or collaborators can add work items above.</span>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+<style>
+    .checklist-collapse-header[aria-expanded="true"] .collapse-chevron {
+        transform: rotate(90deg) !important;
+    }
+</style>
+
+<script>
+function confirmDeleteWorkItem(event, title) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const confirmed = confirm('Delete work item "' + title + '" permanently from the database?');
+    if (!confirmed && event) {
+        event.preventDefault();
+    }
+    return confirmed;
+}
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- AUDIT HISTORY TAB / SECTION (Collapsible)                     -->
@@ -525,15 +703,9 @@
                         </div>
 
                         <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-3">
-                            {{-- Preview --}}
-                            @if($doc->is_previewable)
-                                <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size: 0.7rem;" title="Preview">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            @endif
-                            {{-- Download --}}
-                            <a href="{{ route('hod.tasks.documents.download', [$task, $doc]) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="Download">
-                                <i class="bi bi-download"></i>
+                            {{-- View document in new tab (primary action) --}}
+                            <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="View Document">
+                                <i class="bi bi-eye"></i>
                             </a>
                             {{-- Version History --}}
                             <button class="btn btn-sm btn-outline-info px-2 py-1" style="font-size: 0.7rem;" title="Version History" onclick="loadVersionHistoryHOD({{ $doc->original_document_id ?? $doc->id }}, {{ $task->id }})">

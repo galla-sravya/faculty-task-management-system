@@ -119,7 +119,102 @@ class Task extends Model
 
     public function getIsOverdueAttribute(): bool
     {
-        return $this->deadline->isPast() && $this->status !== 'completed';
+        return $this->deadline && $this->deadline->isPast() && $this->status !== 'completed';
+    }
+
+    public function getSmartDeadlineAttribute(): array
+    {
+        if ($this->status === 'completed') {
+            return [
+                'label' => 'Completed',
+                'text' => $this->deadline ? $this->deadline->format('M d, Y') : 'Completed',
+                'badge_class' => 'badge bg-success text-white',
+                'color_class' => 'text-success fw-bold',
+                'type' => 'completed',
+                'days' => 0,
+            ];
+        }
+
+        if (!$this->deadline) {
+            return [
+                'label' => 'No Deadline',
+                'text' => '-',
+                'badge_class' => 'badge bg-secondary text-white',
+                'color_class' => 'text-muted',
+                'type' => 'none',
+                'days' => 0,
+            ];
+        }
+
+        $now = Carbon::now()->startOfDay();
+        $deadlineDay = $this->deadline->copy()->startOfDay();
+
+        if ($deadlineDay->isPast()) {
+            $daysOverdue = (int) $deadlineDay->diffInDays($now);
+            if ($daysOverdue === 0) {
+                return [
+                    'label' => 'Due Today',
+                    'text' => 'Due Today',
+                    'badge_class' => 'badge bg-warning text-dark',
+                    'color_class' => 'text-warning-emphasis fw-bold',
+                    'type' => 'today',
+                    'days' => 0,
+                ];
+            }
+            $label = $daysOverdue === 1 ? 'Overdue by 1 day' : "Overdue by {$daysOverdue} days";
+            return [
+                'label' => $label,
+                'text' => $label,
+                'badge_class' => 'badge bg-danger text-white',
+                'color_class' => 'text-danger fw-bold',
+                'type' => 'overdue',
+                'days' => -$daysOverdue,
+            ];
+        }
+
+        if ($deadlineDay->isToday()) {
+            return [
+                'label' => 'Due Today',
+                'text' => 'Due Today',
+                'badge_class' => 'badge bg-warning text-dark',
+                'color_class' => 'text-warning-emphasis fw-bold',
+                'type' => 'today',
+                'days' => 0,
+            ];
+        }
+
+        if ($deadlineDay->isTomorrow()) {
+            return [
+                'label' => 'Due Tomorrow',
+                'text' => 'Due Tomorrow',
+                'badge_class' => 'badge bg-warning text-dark',
+                'color_class' => 'text-warning-emphasis fw-semibold',
+                'type' => 'tomorrow',
+                'days' => 1,
+            ];
+        }
+
+        $daysUntil = (int) $now->diffInDays($deadlineDay);
+        if ($daysUntil <= 7) {
+            $label = "Due in {$daysUntil} days";
+            return [
+                'label' => $label,
+                'text' => $label,
+                'badge_class' => 'badge bg-warning text-dark',
+                'color_class' => 'text-dark fw-semibold',
+                'type' => 'upcoming_7',
+                'days' => $daysUntil,
+            ];
+        }
+
+        return [
+            'label' => $this->deadline->format('M d, Y'),
+            'text' => $this->deadline->format('M d, Y'),
+            'badge_class' => 'badge bg-light text-dark border',
+            'color_class' => 'text-muted',
+            'type' => 'normal',
+            'days' => $daysUntil,
+        ];
     }
 
     public function getDaysOverdueAttribute(): int

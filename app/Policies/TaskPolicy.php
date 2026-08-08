@@ -159,4 +159,77 @@ class TaskPolicy
 
         return false;
     }
+
+    public function manageChecklist(User $user, Task $task): bool
+    {
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id || $task->assignees()->where('user_id', $user->id)->exists();
+        }
+
+        return $task->assignees()->where('user_id', $user->id)->exists();
+    }
+
+    public function updateChecklistItem(User $user, Task $task, \App\Models\TaskChecklistItem $item): bool
+    {
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        // Faculty can edit items they created
+        return $task->assignees()->where('user_id', $user->id)->exists() && $item->created_by === $user->id;
+    }
+
+    public function updateChecklistItemStatus(User $user, Task $task, \App\Models\TaskChecklistItem $item): bool
+    {
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id || $task->assignees()->where('user_id', $user->id)->exists();
+        }
+
+        // Faculty assigned to task can update status if assigned to them, assigned to all, or created by them
+        if (!$task->assignees()->where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
+        return is_null($item->assigned_to) || $item->assigned_to === $user->id || $item->created_by === $user->id;
+    }
+
+    public function deleteChecklistItem(User $user, Task $task, \App\Models\TaskChecklistItem $item): bool
+    {
+        if ($user->isHod()) {
+            return $user->department_id === $task->department_id;
+        }
+
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        // Faculty CANNOT delete HOD-created requirements
+        if ($item->created_by_role === 'hod' || $item->isHodRequirement()) {
+            return false;
+        }
+
+        // Must be an assigned collaborator on the task
+        if (!$task->assignees()->where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
+        // Faculty can delete work items created by them or assigned to them or shared items
+        if ($item->created_by) {
+            return $item->created_by === $user->id || $item->assigned_to === $user->id || $item->assigned_to === null;
+        }
+
+        return true;
+    }
 }

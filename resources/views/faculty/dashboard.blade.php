@@ -76,21 +76,11 @@
                         </thead>
                         <tbody>
                             @forelse($upcomingDeadlines as $task)
-                            <tr class="{{ $task->owner_role === 'nba_coordinator' ? 'bg-warning-subtle border-start border-warning border-3' : ($task->owner_role !== 'hod' ? 'bg-light' : '') }}" onclick="window.location='{{ route('faculty.tasks.show', $task) }}'" style="cursor: pointer;">
-                                <td class="ps-3">
+                            <tr onclick="window.location='{{ route('faculty.tasks.show', $task) }}'" style="cursor: pointer;">
+                                <td class="ps-4">
                                     <a href="{{ route('faculty.tasks.show', $task) }}" class="text-decoration-none fw-semibold" style="color: var(--navy);">
                                         {{ $task->title }}
                                     </a>
-                                    @if($task->owner_role !== 'hod')
-                                        <span class="badge rounded-pill bg-secondary ms-2" style="font-size: 0.6rem; opacity: 0.85;">
-                                            <i class="bi bi-person-badge me-1"></i>{{ ucwords(str_replace('_', ' ', $task->owner_role)) }}
-                                        </span>
-                                    @endif
-                                    @if($task->pivot->is_reassigned)
-                                        <span class="badge rounded-pill bg-warning text-dark ms-2 border border-warning" style="font-size: 0.65rem;">
-                                            <i class="bi bi-arrow-repeat me-1"></i>Reassigned
-                                        </span>
-                                    @endif
                                 </td>
                                 <td>
                                     <span class="badge rounded-pill bg-{{ $task->priority_color }} px-2 py-1">
@@ -103,12 +93,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="{{ $task->deadline->isPast() ? 'text-danger fw-semibold' : ($task->deadline->diffInDays(now()) < 3 ? 'text-warning fw-semibold' : 'text-muted') }}" style="font-size:0.82rem;">
-                                        <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y H:i') }}
-                                        @if($task->deadline->isPast())
-                                            <span class="badge bg-danger ms-1" style="font-size: 0.65rem;">Overdue by {{ (int) $task->deadline->diffInDays(now()) }} {{ (int) $task->deadline->diffInDays(now()) === 1 ? 'day' : 'days' }}</span>
-                                        @endif
-                                    </span>
+                                    <x-task-deadline-badge :task="$task" />
                                 </td>
                                 <td class="pe-4">
                                     <a href="{{ route('faculty.tasks.show', $task) }}" class="btn btn-sm btn-outline-primary fw-medium px-3" style="font-size: 0.8rem; border-color: var(--navy); color: var(--navy);" onclick="event.stopPropagation();">
