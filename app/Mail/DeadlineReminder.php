@@ -4,8 +4,6 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Task;
 
@@ -19,45 +17,42 @@ class DeadlineReminder extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(Task $task, string $stage = '48h')
+    public function __construct(Task $task, string $stage = '50pct')
     {
         $this->task = $task;
         $this->stage = $stage;
     }
 
     /**
-     * Get the message envelope.
+     * Build the message.
      */
-    public function envelope(): Envelope
+    public function build()
     {
         $subject = match ($this->stage) {
-            'morning' => 'Morning Reminder: Task "' . $this->task->title . '" is due today',
-            'evening' => 'Evening Reminder: Task "' . $this->task->title . '" is due today',
-            default => 'Reminder: Task "' . $this->task->title . '" is due in 48 hours',
+            '75pct' => 'Time Running Out: "' . $this->task->title . '" — 75% of your time is used, deadline approaching',
+            '50pct' => 'Halfway There: "' . $this->task->title . '" — 50% of your time is used',
+            default => 'Reminder: Task "' . $this->task->title . '" deadline reminder',
         };
 
-        return new Envelope(
-            subject: $subject,
-        );
-    }
+        $logoPath = public_path('images/psg-logo-email.png');
 
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            markdown: 'emails.deadline-reminder',
-        );
-    }
+        $mail = $this->subject($subject)
+            ->markdown('emails.deadline-reminder', [
+                'task' => $this->task,
+                'stage' => $this->stage,
+            ]);
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
+        // Embed logo as CID inline attachment
+        if (file_exists($logoPath)) {
+            $mail->withSymfonyMessage(function ($message) use ($logoPath) {
+                $message->embed(
+                    fopen($logoPath, 'r'),
+                    'psg-logo.png',
+                    'image/png'
+                );
+            });
+        }
+
+        return $mail;
     }
 }

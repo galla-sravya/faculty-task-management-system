@@ -19,26 +19,34 @@ class DashboardController extends Controller
         protected TaskFilterService $filterService
     ) {}
 
+    private function hodTaskQuery(int $departmentId)
+    {
+        return Task::where('department_id', $departmentId)->where('owner_role', 'hod');
+    }
+
     public function index(): View
     {
         $hod = auth()->user();
         $departmentId = $hod->department_id;
 
-        $totalTasks = Task::where('department_id', $departmentId)->count();
-        $completedTasks = Task::where('department_id', $departmentId)->completed()->count();
-        $inProgressTasks = Task::where('department_id', $departmentId)->inProgress()->count();
-        $overdueTasks = Task::where('department_id', $departmentId)->overdue()->count();
+        $baseQuery = $this->hodTaskQuery($departmentId);
+
+        $totalTasks = (clone $baseQuery)->count();
+        $completedTasks = (clone $baseQuery)->completed()->count();
+        $inProgressTasks = (clone $baseQuery)->inProgress()->count();
+        $overdueTasks = (clone $baseQuery)->overdue()->count();
         
         $completionRate = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
 
-        $recentTasks = Task::where('department_id', $departmentId)
+        $recentTasks = (clone $baseQuery)
             ->with(['assignees', 'creator'])
             ->latest()
             ->get();
 
-        $upcomingDeadlines = Task::where('department_id', $departmentId)
-            ->pending()
-            ->orWhere('status', 'in_progress')
+        $upcomingDeadlines = (clone $baseQuery)
+            ->where(function ($q) {
+                $q->where('status', 'pending')->orWhere('status', 'in_progress');
+            })
             ->orderBy('deadline', 'asc')
             ->take(5)
             ->get();
@@ -55,7 +63,7 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        $categories = Task::where('department_id', $departmentId)
+        $categories = (clone $baseQuery)
             ->whereNotNull('category')
             ->distinct()
             ->pluck('category')
@@ -67,23 +75,23 @@ class DashboardController extends Controller
             $categories = collect(['Academics', 'Research', 'NBA', 'NAAC', 'Placement', 'Department', 'Workshop', 'Seminar']);
         }
 
-        // Documents awaiting HOD review
+        // Documents awaiting HOD review (only for HOD-owned tasks)
         $documentsAwaitingReview = TaskDocument::where('review_status', 'submitted')
-            ->whereHas('task', fn ($q) => $q->where('department_id', $departmentId))
+            ->whereHas('task', fn ($q) => $q->where('department_id', $departmentId)->where('owner_role', 'hod'))
             ->with(['task', 'user'])
             ->latest()
             ->take(5)
             ->get();
 
-        // Recently Completed Tasks
-        $recentlyCompletedTasks = Task::where('department_id', $departmentId)
+        // Recently Completed Tasks (HOD-owned only)
+        $recentlyCompletedTasks = (clone $baseQuery)
             ->where('status', 'completed')
             ->latest('updated_at')
             ->take(5)
             ->get();
 
-        // Recent Activity Log Stream
-        $recentActivities = \App\Models\TaskActivity::whereHas('task', fn ($q) => $q->where('department_id', $departmentId))
+        // Recent Activity Log Stream (HOD-owned tasks only)
+        $recentActivities = \App\Models\TaskActivity::whereHas('task', fn ($q) => $q->where('department_id', $departmentId)->where('owner_role', 'hod'))
             ->with(['user', 'task'])
             ->latest()
             ->take(6)
@@ -116,11 +124,11 @@ class DashboardController extends Controller
             'search'          => $request->input('search'),
         ];
 
-        // Get filtered tasks
-        $tasks = $this->filterService->getFilteredTasks($departmentId, $filters);
+        // Get filtered tasks — pass owner_role for scoping
+        $tasks = $this->filterService->getFilteredTasks($departmentId, $filters, 'hod');
 
         // Get status distribution for charts
-        $stats = $this->filterService->getStatusDistribution($departmentId, $filters);
+        $stats = $this->filterService->getStatusDistribution($departmentId, $filters, 'hod');
 
         // Build tasks array for JSON response
         $tasksData = $tasks->map(function (Task $task) {
@@ -145,6 +153,7 @@ class DashboardController extends Controller
                 'deadline'         => $task->deadline->format('M d, Y'),
                 'duration_days'    => $task->duration_in_days,
                 'is_overdue'       => $task->is_overdue,
+                'days_overdue'     => $task->days_overdue,
                 'category'         => $task->category ?? 'General',
                 'overall_progress' => $task->overall_progress,
                 'show_url'         => route('hod.tasks.show', $task),
@@ -162,21 +171,23 @@ class DashboardController extends Controller
         $hod = auth()->user();
         $departmentId = $hod->department_id;
 
+        $baseQuery = $this->hodTaskQuery($departmentId);
+
         // Task Status Distribution
         $taskStatus = [
-            'completed' => Task::where('department_id', $departmentId)->completed()->count(),
-            'in_progress' => Task::where('department_id', $departmentId)->inProgress()->count(),
-            'pending' => Task::where('department_id', $departmentId)->pending()->count(),
-            'overdue' => Task::where('department_id', $departmentId)->overdue()->count(),
+            'completed' => (clone $baseQuery)->completed()->count(),
+            'in_progress' => (clone $baseQuery)->inProgress()->count(),
+            'pending' => (clone $baseQuery)->pending()->count(),
+            'overdue' => (clone $baseQuery)->overdue()->count(),
         ];
 
-        // Faculty Performance (Tasks Completed vs Total Assigned)
+        // Faculty Performance (Tasks Completed vs Total Assigned — HOD tasks only)
         $faculties = User::where('department_id', $departmentId)->where('role', 'faculty')->get();
         $facultyPerformance = [];
         
         foreach ($faculties as $faculty) {
-            $totalAssigned = $faculty->assignedTasks()->count();
-            $completed = $faculty->assignedTasks()->wherePivot('status', 'completed')->count();
+            $totalAssigned = $faculty->assignedTasks()->where('owner_role', 'hod')->count();
+            $completed = $faculty->assignedTasks()->where('owner_role', 'hod')->wherePivot('status', 'completed')->count();
             
             $facultyPerformance['labels'][] = $faculty->name;
             $facultyPerformance['total'][] = $totalAssigned;

@@ -15,8 +15,7 @@ class Task extends Model
     use SoftDeletes;
     protected $fillable = [
         'title', 'description', 'created_by', 'owner_role', 'department_id', 'meeting_id',
-        'priority', 'category', 'status', 'deadline', 'reminder_48h_sent_at', 'reminder_12h_sent_at', 'reminder_2h_sent_at',
-        'deadline_day_morning_sent_at', 'deadline_day_evening_sent_at',
+        'priority', 'category', 'status', 'deadline', 'reminder_50pct_sent_at', 'reminder_75pct_sent_at',
     ];
 
     protected static function booted(): void
@@ -30,11 +29,8 @@ class Task extends Model
 
     protected $casts = [
         'deadline' => 'datetime',
-        'reminder_48h_sent_at' => 'datetime',
-        'reminder_12h_sent_at' => 'datetime',
-        'reminder_2h_sent_at' => 'datetime',
-        'deadline_day_morning_sent_at' => 'datetime',
-        'deadline_day_evening_sent_at' => 'datetime',
+        'reminder_50pct_sent_at' => 'datetime',
+        'reminder_75pct_sent_at' => 'datetime',
     ];
 
     public function creator(): BelongsTo
@@ -55,7 +51,7 @@ class Task extends Model
     public function assignees(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'task_user')
-            ->withPivot(['status', 'progress_percentage', 'remarks', 'completed_at', 'role', 'assigned_by', 'assigned_at'])
+            ->withPivot(['status', 'progress_percentage', 'remarks', 'completed_at', 'role', 'assigned_by', 'assigned_at', 'is_reassigned'])
             ->withTimestamps();
     }
 
@@ -124,6 +120,12 @@ class Task extends Model
     public function getIsOverdueAttribute(): bool
     {
         return $this->deadline->isPast() && $this->status !== 'completed';
+    }
+
+    public function getDaysOverdueAttribute(): int
+    {
+        if (!$this->deadline || !$this->is_overdue) return 0;
+        return (int) $this->deadline->diffInDays(Carbon::now());
     }
 
     public function getAssignedDateAttribute(): Carbon

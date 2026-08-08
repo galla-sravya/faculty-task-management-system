@@ -34,7 +34,7 @@
             </div>
             <div class="col-3">
                 <span class="text-muted d-block small">Deadline</span>
-                <span class="fw-bold {{ $task->is_overdue ? 'text-danger' : 'text-navy' }}">{{ $task->deadline->format('M d, Y') }}</span>
+                <span class="fw-bold {{ $task->is_overdue ? 'text-danger' : 'text-navy' }}">{{ $task->deadline->format('M d, Y') }}@if($task->is_overdue) <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>@endif</span>
             </div>
         </div>
 

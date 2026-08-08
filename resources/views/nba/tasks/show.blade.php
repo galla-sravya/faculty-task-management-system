@@ -21,6 +21,11 @@
                 </form>
             @endcan
         @else
+            @can('reassign', $task)
+            <button class="btn btn-sm btn-outline-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#reassignTaskModal" style="border-color: var(--navy); color: var(--navy);">
+                <i class="bi bi-arrow-repeat"></i> Reassign Task
+            </button>
+            @endcan
             @can('addCollaborator', $task)
             <button class="btn btn-sm btn-psg-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#addCollaboratorModal">
                 <i class="bi bi-person-plus"></i> Add Collaborator
@@ -86,7 +91,7 @@
                     </div>
                     <div class="col-4">
                         <span class="text-muted d-block">Deadline</span>
-                        <span class="fw-bold {{ $task->is_overdue ? 'text-danger' : 'text-navy' }}">{{ $task->deadline->format('M d, Y g:i A') }}</span>
+                        <span class="fw-bold {{ $task->is_overdue ? 'text-danger' : 'text-navy' }}">{{ $task->deadline->format('M d, Y g:i A') }}@if($task->is_overdue) <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>@endif</span>
                     </div>
                     <div class="col-4">
                         <span class="text-muted d-block">Assigned Date</span>
@@ -404,6 +409,65 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+@endcan
+
+<!-- Reassign Task Modal -->
+@can('reassign', $task)
+<div class="modal fade" id="reassignTaskModal" tabindex="-1" aria-labelledby="reassignTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ route('tasks.reassign', $task) }}">
+                @csrf
+                <div class="modal-header border-bottom py-3" style="background: linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%);">
+                    <h5 class="modal-title text-white fw-bold" id="reassignTaskModalLabel">
+                        <i class="bi bi-arrow-repeat me-2"></i>Reassign Task
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle-fill text-warning mt-1"></i>
+                        <span>Reassigning will <strong>completely transfer</strong> this task from the selected assignee to a new person. The original assignee will be removed from the task.</span>
+                    </div>
+
+                    <!-- Select Current Assignee to Replace -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Replace Current Assignee <span class="text-danger">*</span></label>
+                        <select name="old_assignee_id" class="form-select" required>
+                            <option value="">— Select who to replace —</option>
+                            @foreach($task->assignees as $assignee)
+                                <option value="{{ $assignee->id }}">{{ $assignee->name }} — {{ $assignee->designation ?? 'Faculty' }} ({{ ucfirst($assignee->pivot->role ?? 'owner') }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Select New Assignee -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Assign To <span class="text-danger">*</span></label>
+                        <select name="new_assignee_id" class="form-select" required>
+                            <option value="">— Select new assignee —</option>
+                            @foreach(\App\Models\User::where('department_id', auth()->user()->department_id)->where('role', 'faculty')->get() as $f)
+                                <option value="{{ $f->id }}">{{ $f->name }} ({{ $f->designation }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Reason -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Reason for Reassignment</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="Why is this task being reassigned?"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-psg-primary btn-sm d-flex align-items-center gap-1">
+                        <i class="bi bi-arrow-repeat"></i> Reassign Task
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endcan

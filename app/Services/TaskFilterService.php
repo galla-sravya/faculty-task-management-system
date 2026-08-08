@@ -11,10 +11,16 @@ class TaskFilterService
 {
     /**
      * Build filtered tasks query using Eloquent when() clauses.
+     * Accepts optional $ownerRole to scope tasks by owner_role.
      */
-    public function buildQuery(int $departmentId, array $filters = []): Builder
+    public function buildQuery(int $departmentId, array $filters = [], ?Builder $baseQuery = null, ?string $ownerRole = null): Builder
     {
-        $query = Task::where('department_id', $departmentId);
+        $query = $baseQuery ?? Task::where('department_id', $departmentId);
+
+        // Apply owner_role scope if provided
+        if ($ownerRole) {
+            $query->where('owner_role', $ownerRole);
+        }
 
         // Filter by Faculty Assignee
         $query->when(!empty($filters['faculty_id']), function (Builder $q) use ($filters) {
@@ -80,9 +86,9 @@ class TaskFilterService
     /**
      * Get filtered tasks with eager loaded relationships.
      */
-    public function getFilteredTasks(int $departmentId, array $filters = [])
+    public function getFilteredTasks(int $departmentId, array $filters = [], ?string $ownerRole = null)
     {
-        return $this->buildQuery($departmentId, $filters)
+        return $this->buildQuery($departmentId, $filters, null, $ownerRole)
             ->with(['assignees', 'creator', 'department'])
             ->latest('updated_at')
             ->get();
@@ -91,14 +97,14 @@ class TaskFilterService
     /**
      * Calculate task status distribution for filtered subset.
      */
-    public function getStatusDistribution(int $departmentId, array $filters = []): array
+    public function getStatusDistribution(int $departmentId, array $filters = [], ?string $ownerRole = null): array
     {
         // Clone query per status metric
-        $completed = (clone $this->buildQuery($departmentId, $filters))->completed()->count();
-        $inProgress = (clone $this->buildQuery($departmentId, $filters))->inProgress()->count();
-        $pending = (clone $this->buildQuery($departmentId, $filters))->pending()->count();
-        $overdue = (clone $this->buildQuery($departmentId, $filters))->overdue()->count();
-        $total = (clone $this->buildQuery($departmentId, $filters))->count();
+        $completed = (clone $this->buildQuery($departmentId, $filters, null, $ownerRole))->completed()->count();
+        $inProgress = (clone $this->buildQuery($departmentId, $filters, null, $ownerRole))->inProgress()->count();
+        $pending = (clone $this->buildQuery($departmentId, $filters, null, $ownerRole))->pending()->count();
+        $overdue = (clone $this->buildQuery($departmentId, $filters, null, $ownerRole))->overdue()->count();
+        $total = (clone $this->buildQuery($departmentId, $filters, null, $ownerRole))->count();
 
         $completionRate = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
 

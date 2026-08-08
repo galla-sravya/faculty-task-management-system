@@ -31,17 +31,6 @@
                 @include('profile.partials.update-password-form')
             </div>
         </div>
-
-        <div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="m-0 fw-bold text-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Delete Account
-                </h6>
-            </div>
-            <div class="card-body p-4">
-                @include('profile.partials.delete-user-form')
-            </div>
-        </div>
     </div>
 </div>
 @endsection

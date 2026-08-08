@@ -35,8 +35,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('global.search');
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar.index');
 
+    // Smart task redirect — works for any role (used in email links)
+    Route::get('/tasks/{task}/view', function (App\Models\Task $task) {
+        $user = auth()->user();
+        if ($user->isHod()) {
+            return redirect()->route('hod.tasks.show', $task);
+        }
+        if ($user->isNbaCoordinator()) {
+            return redirect()->route('nba.tasks.show', $task);
+        }
+        return redirect()->route('faculty.tasks.show', $task);
+    })->name('tasks.view');
+
     // NBA Coordinator Routes
     Route::middleware('role:nba_coordinator')->prefix('nba')->name('nba.')->group(function () {
+        Route::get('/api/charts', [App\Http\Controllers\NBA\DashboardController::class, 'getChartsData'])->name('api.charts');
+        Route::get('/api/filter-tasks', [App\Http\Controllers\NBA\DashboardController::class, 'filterTasks'])->name('api.filterTasks');
+
         Route::get('/dashboard', [App\Http\Controllers\NBA\DashboardController::class, 'index'])->name('dashboard');
         
         Route::get('tasks/archived', [App\Http\Controllers\NBA\TaskController::class, 'archived'])->name('tasks.archived');
@@ -54,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tasks/{task}/documents/{document}/review', [App\Http\Controllers\NBA\TaskDocumentController::class, 'review'])->name('tasks.documents.review');
         Route::get('tasks/{task}/documents/{document}/download', [App\Http\Controllers\NBA\TaskDocumentController::class, 'download'])->name('tasks.documents.download');
         Route::get('tasks/{task}/documents/{document}/versions', [App\Http\Controllers\NBA\TaskDocumentController::class, 'versions'])->name('tasks.documents.versions');
+
+        // NBA Faculty Management (view-only — no create/store)
+        Route::get('faculty', [App\Http\Controllers\NBA\FacultyController::class, 'index'])->name('faculty.index');
+        Route::get('faculty/{faculty}/performance', [App\Http\Controllers\NBA\FacultyController::class, 'performance'])->name('faculty.performance');
     });
 
     // HOD Routes
@@ -114,6 +133,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Task Collaborator Routes
     Route::post('/tasks/{task}/collaborators', [App\Http\Controllers\TaskCollaboratorController::class, 'store'])->name('tasks.collaborators.store');
     Route::delete('/tasks/{task}/collaborators/{user}', [App\Http\Controllers\TaskCollaboratorController::class, 'destroy'])->name('tasks.collaborators.destroy');
+
+    // Task Reassignment Route
+    Route::post('/tasks/{task}/reassign', [App\Http\Controllers\TaskCollaboratorController::class, 'reassign'])->name('tasks.reassign');
 
     // Task Comments Routes
     Route::post('/tasks/{task}/comments', [App\Http\Controllers\TaskCommentController::class, 'store'])->name('tasks.comments.store');

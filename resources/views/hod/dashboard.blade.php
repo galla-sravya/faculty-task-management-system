@@ -251,6 +251,9 @@
                                 <td class="text-nowrap" style="font-size:0.78rem;">
                                     <span class="{{ $task->is_overdue ? 'text-danger fw-semibold' : 'text-muted' }}">
                                         <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y') }}
+                                        @if($task->is_overdue)
+                                            <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>
+                                        @endif
                                     </span>
                                 </td>
                                 <td>
@@ -451,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td><span class="badge rounded-pill bg-${t.priority_color} px-2 py-1">${t.priority.charAt(0).toUpperCase()+t.priority.slice(1)}</span></td>
                 <td><span class="badge rounded-pill bg-${t.status_color} px-2 py-1">${t.status_label}</span></td>
                 <td><span class="text-muted" style="font-size:0.82rem;"><i class="bi bi-calendar-event me-1"></i>${t.assigned_date}</span></td>
-                <td><span class="${t.is_overdue?'text-danger fw-semibold':'text-muted'}" style="font-size:0.82rem;"><i class="bi bi-calendar3 me-1"></i>${t.deadline}</span></td>
+                <td><span class="${t.is_overdue?'text-danger fw-semibold':'text-muted'}" style="font-size:0.82rem;"><i class="bi bi-calendar3 me-1"></i>${t.deadline}${t.is_overdue && t.days_overdue > 0 ? ' <span class=\"badge bg-danger ms-1\" style=\"font-size:0.6rem;\">Overdue by '+t.days_overdue+' '+(t.days_overdue===1?'day':'days')+'</span>' : ''}</span></td>
                 <td><span class="badge bg-light text-dark border" style="font-size:0.72rem;">${t.category}</span></td>
                 <td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:6px;min-width:50px;background:#e9ecef;border-radius:3px;"><div class="progress-bar" style="width:${t.overall_progress}%;background:var(--navy);border-radius:3px;"></div></div><span class="fw-semibold small text-dark" style="min-width:30px;font-size:0.75rem;">${t.overall_progress}%</span></div></td>
                 <td class="pe-4"><a href="${t.show_url}" class="btn btn-sm btn-outline-primary fw-medium px-3" style="font-size:0.8rem;border-color:var(--navy);color:var(--navy);" onclick="event.stopPropagation();">View</a></td>

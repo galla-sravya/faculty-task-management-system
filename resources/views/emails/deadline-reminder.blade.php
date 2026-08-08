@@ -1,20 +1,20 @@
 <x-mail::message>
-@if($stage === 'morning')
-# Morning Reminder: Task Due Today
-@elseif($stage === 'evening')
-# Evening Reminder: Task Due Today
+@if($stage === '50pct')
+# Halfway There: 50% Time Used
+@elseif($stage === '75pct')
+# Time Running Out: 75% Time Used
 @else
-# Task Deadline Reminder (48 Hours)
+# Task Deadline Reminder
 @endif
 
 Task: **{{ $task->title }}**
 
-@if($stage === 'morning')
-This is a morning reminder that your assigned task is due today.
-@elseif($stage === 'evening')
-This is an evening reminder that your assigned task is due today. Please make sure to complete and update your task status.
+@if($stage === '50pct')
+You're halfway through the time you had for this task — check in on your progress.
+@elseif($stage === '75pct')
+Only 25% of your available time is left before the deadline — please wrap up soon.
 @else
-This is a reminder that your assigned task is due in 48 hours.
+This is a reminder regarding your assigned task deadline.
 @endif
 
 **Priority:** {{ ucfirst($task->priority) }}  
@@ -26,7 +26,7 @@ This is a reminder that your assigned task is due in 48 hours.
 {{ $task->description }}
 @endif
 
-<x-mail::button :url="route('faculty.tasks.show', $task)">
+<x-mail::button :url="route('tasks.view', $task)">
 View Task & Update Progress
 </x-mail::button>
 

@@ -76,6 +76,10 @@ class CalendarController extends Controller
                 'assigned_date' => $task->assigned_date->format('M d, Y'),
                 'deadline'      => $task->deadline->format('M d, Y'),
                 'categories'    => $categories,
+                'days_overdue'  => $task->days_overdue,
+                'overdue_label' => $task->days_overdue > 0
+                    ? 'Overdue by ' . $task->days_overdue . ' ' . ($task->days_overdue === 1 ? 'day' : 'days')
+                    : null,
             ]);
         }
 

@@ -4,9 +4,29 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-3 mb-4 border-bottom" style="border-color: var(--border) !important;">
     <div>
         <h1 class="h3 fw-bold mb-1" style="color: var(--navy);">My Assigned Tasks</h1>
-        <p class="text-muted small mb-0">Track and update your assigned tasks</p>
+        <p class="text-muted small mb-0">Track and update your assigned tasks from HOD and NBA Coordinator</p>
     </div>
 </div>
+
+<!-- Source Tabs: HOD / NBA -->
+<ul class="nav nav-pills mb-4 gap-2" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2 px-4 py-2 fw-semibold {{ $source === 'hod' ? 'active' : '' }}"
+           href="{{ route('faculty.tasks.index', ['source' => 'hod']) }}"
+           style="{{ $source === 'hod' ? 'background-color: var(--navy); border-color: var(--navy);' : 'color: var(--navy); background-color: #f0f2f5; border: 1px solid #dee2e6;' }}">
+            <i class="bi bi-building"></i> HOD Tasks
+            <span class="badge rounded-pill {{ $source === 'hod' ? 'bg-white text-dark' : 'bg-secondary text-white' }}" style="font-size: 0.7rem;">{{ $hodCount }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2 px-4 py-2 fw-semibold {{ $source === 'nba' ? 'active' : '' }}"
+           href="{{ route('faculty.tasks.index', ['source' => 'nba']) }}"
+           style="{{ $source === 'nba' ? 'background-color: var(--maroon, #8B0000); border-color: var(--maroon);' : 'color: var(--navy); background-color: #f0f2f5; border: 1px solid #dee2e6;' }}">
+            <i class="bi bi-award"></i> NBA Coordinator Tasks
+            <span class="badge rounded-pill {{ $source === 'nba' ? 'bg-white text-dark' : 'bg-secondary text-white' }}" style="font-size: 0.7rem;">{{ $nbaCount }}</span>
+        </a>
+    </li>
+</ul>
 
 <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
     <div class="card-body p-0">
@@ -27,10 +47,15 @@
                     @forelse($tasks as $task)
                     @php $myPivot = $task->pivot; @endphp
                     <tr>
-                        <td class="ps-4">
+                        <td class="ps-3">
                             <a href="{{ route('faculty.tasks.show', $task) }}" class="text-decoration-none fw-semibold" style="color: var(--navy);">
                                 {{ $task->title }}
                             </a>
+                            @if($myPivot->is_reassigned)
+                                <span class="badge rounded-pill bg-warning text-dark ms-2 border border-warning" style="font-size: 0.65rem;">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Reassigned
+                                </span>
+                            @endif
                         </td>
                         <td>
                             @php
@@ -76,7 +101,7 @@
                             <span class="{{ $task->is_overdue ? 'text-danger fw-semibold' : 'text-muted' }}" style="font-size: 0.85rem;">
                                 <i class="bi bi-calendar3 me-1"></i>{{ $task->deadline->format('M d, Y') }}
                                 @if($task->is_overdue)
-                                    <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue</span>
+                                    <span class="badge bg-danger ms-1" style="font-size: 0.6rem;">Overdue by {{ $task->days_overdue }} {{ $task->days_overdue === 1 ? 'day' : 'days' }}</span>
                                 @endif
                             </span>
                         </td>
@@ -90,7 +115,7 @@
                     <tr>
                         <td colspan="7" class="text-center py-5 text-muted">
                             <i class="bi bi-clipboard-check fs-2 d-block mb-2 text-secondary"></i>
-                            No tasks assigned to you right now.
+                            No {{ $source === 'nba' ? 'NBA Coordinator' : 'HOD' }} tasks assigned to you right now.
                         </td>
                     </tr>
                     @endforelse

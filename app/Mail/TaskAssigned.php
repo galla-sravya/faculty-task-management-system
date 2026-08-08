@@ -3,10 +3,7 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Task;
 
@@ -25,32 +22,28 @@ class TaskAssigned extends Mailable
     }
 
     /**
-     * Get the message envelope.
+     * Build the message.
      */
-    public function envelope(): Envelope
+    public function build()
     {
-        return new Envelope(
-            subject: 'New Task Assigned: ' . $this->task->title,
-        );
-    }
+        $logoPath = public_path('images/psg-logo-email.png');
 
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            markdown: 'emails.task-assigned',
-        );
-    }
+        $mail = $this->subject('New Task Assigned: ' . $this->task->title)
+            ->markdown('emails.task-assigned', [
+                'task' => $this->task,
+            ]);
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
+        // Embed logo as CID inline attachment
+        if (file_exists($logoPath)) {
+            $mail->withSymfonyMessage(function ($message) use ($logoPath) {
+                $message->embed(
+                    fopen($logoPath, 'r'),
+                    'psg-logo.png',
+                    'image/png'
+                );
+            });
+        }
+
+        return $mail;
     }
 }
