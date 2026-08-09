@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Department extends Model
 {
-    protected $fillable = ['name', 'code', 'hod_id'];
+    protected $fillable = ['name', 'code', 'hod_id', 'status'];
 
     public function hod(): BelongsTo
     {
         return $this->belongsTo(User::class, 'hod_id');
+    }
+
+    public function nbaCoordinator(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(User::class)->where('role', 'nba_coordinator');
     }
 
     public function users(): HasMany

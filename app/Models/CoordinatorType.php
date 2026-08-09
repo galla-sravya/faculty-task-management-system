@@ -14,6 +14,7 @@ class CoordinatorType extends Model
         'slug',
         'description',
         'created_by',
+        'status',
     ];
 
     public function creator()

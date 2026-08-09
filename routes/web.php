@@ -63,8 +63,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin Routes
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-        Route::resource('coordinators', App\Http\Controllers\Admin\CoordinatorController::class)->except(['show']);
-        Route::resource('coordinator-types', App\Http\Controllers\Admin\CoordinatorTypeController::class)->except(['show']);
+
+        // HOD Accounts
+        Route::resource('hods', App\Http\Controllers\Admin\HodController::class)->except(['create', 'edit', 'show']);
+        Route::post('hods/{hod}/toggle-status', [App\Http\Controllers\Admin\HodController::class, 'toggleStatus'])->name('hods.toggleStatus');
+        Route::post('hods/{hod}/reset-password', [App\Http\Controllers\Admin\HodController::class, 'resetPassword'])->name('hods.resetPassword');
+
+        // NBA Coordinator Accounts
+        Route::resource('nba-coordinators', App\Http\Controllers\Admin\NbaCoordinatorController::class)->except(['create', 'edit', 'show']);
+        Route::post('nba-coordinators/{nba_coordinator}/toggle-status', [App\Http\Controllers\Admin\NbaCoordinatorController::class, 'toggleStatus'])->name('nba-coordinators.toggleStatus');
+        Route::post('nba-coordinators/{nba_coordinator}/reset-password', [App\Http\Controllers\Admin\NbaCoordinatorController::class, 'resetPassword'])->name('nba-coordinators.resetPassword');
+
+        // Dynamic Coordinator Accounts
+        Route::resource('dynamic-coordinators', App\Http\Controllers\Admin\DynamicCoordinatorController::class)->except(['create', 'edit', 'show']);
+        Route::post('dynamic-coordinators/{dynamic_coordinator}/toggle-status', [App\Http\Controllers\Admin\DynamicCoordinatorController::class, 'toggleStatus'])->name('dynamic-coordinators.toggleStatus');
+        Route::post('dynamic-coordinators/{dynamic_coordinator}/reset-password', [App\Http\Controllers\Admin\DynamicCoordinatorController::class, 'resetPassword'])->name('dynamic-coordinators.resetPassword');
+
+        // Departments & Faculty inside Department
+        Route::resource('departments', App\Http\Controllers\Admin\DepartmentController::class);
+        Route::post('departments/{department}/toggle-status', [App\Http\Controllers\Admin\DepartmentController::class, 'toggleStatus'])->name('departments.toggleStatus');
+
+        Route::post('departments/{department}/faculty', [App\Http\Controllers\Admin\DepartmentFacultyController::class, 'store'])->name('departments.faculty.store');
+        Route::put('departments/{department}/faculty/{faculty}', [App\Http\Controllers\Admin\DepartmentFacultyController::class, 'update'])->name('departments.faculty.update');
+        Route::post('departments/{department}/faculty/{faculty}/toggle-status', [App\Http\Controllers\Admin\DepartmentFacultyController::class, 'toggleStatus'])->name('departments.faculty.toggleStatus');
+        Route::post('departments/{department}/faculty/{faculty}/reset-password', [App\Http\Controllers\Admin\DepartmentFacultyController::class, 'resetPassword'])->name('departments.faculty.resetPassword');
+        Route::delete('departments/{department}/faculty/{faculty}', [App\Http\Controllers\Admin\DepartmentFacultyController::class, 'destroy'])->name('departments.faculty.destroy');
+
+        // Dynamic Coordinator Types
+        Route::resource('coordinator-types', App\Http\Controllers\Admin\CoordinatorTypeController::class)->except(['create', 'edit', 'show']);
+        Route::post('coordinator-types/{coordinator_type}/toggle-status', [App\Http\Controllers\Admin\CoordinatorTypeController::class, 'toggleStatus'])->name('coordinator-types.toggleStatus');
     });
 
     // Generic Coordinator Routes

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'google_scholar',
         'orcid',
         'google_site',
+        'status',
     ];
 
     public function getProfilePhotoUrlAttribute(): string
@@ -73,6 +74,11 @@ class User extends Authenticatable
     public function isCoordinator(): bool
     {
         return $this->role === 'coordinator';
+    }
+
+    public function isActive(): bool
+    {
+        return ($this->status ?? 'active') === 'active';
     }
 
     public function coordinatorType(): \Illuminate\Database\Eloquent\Relations\BelongsTo

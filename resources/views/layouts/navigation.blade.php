@@ -17,11 +17,26 @@
             <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" title="Dashboard">
                 <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
             </a>
-            <a href="{{ route('admin.coordinators.index') }}" class="sidebar-link {{ request()->routeIs('admin.coordinators.*') ? 'active' : '' }}" title="Coordinators">
-                <i class="bi bi-people"></i><span class="sidebar-label">Coordinators</span>
+
+            <div class="sidebar-heading px-3 pt-3 pb-1 text-muted text-uppercase fw-bold" style="font-size:0.68rem; letter-spacing:0.8px;">Accounts</div>
+
+            <a href="{{ route('admin.hods.index') }}" class="sidebar-link {{ request()->routeIs('admin.hods.*') ? 'active' : '' }}" title="HOD Accounts">
+                <i class="bi bi-person-badge"></i><span class="sidebar-label">HOD Accounts</span>
             </a>
-            <a href="{{ route('admin.coordinator-types.index') }}" class="sidebar-link {{ request()->routeIs('admin.coordinator-types.*') ? 'active' : '' }}" title="Coordinator Types">
-                <i class="bi bi-gear"></i><span class="sidebar-label">Manage Types</span>
+            <a href="{{ route('admin.nba-coordinators.index') }}" class="sidebar-link {{ request()->routeIs('admin.nba-coordinators.*') ? 'active' : '' }}" title="NBA Coordinator Accounts">
+                <i class="bi bi-person-workspace"></i><span class="sidebar-label">NBA Coordinators</span>
+            </a>
+            <a href="{{ route('admin.dynamic-coordinators.index') }}" class="sidebar-link {{ request()->routeIs('admin.dynamic-coordinators.*') ? 'active' : '' }}" title="Dynamic Coordinator Accounts">
+                <i class="bi bi-person-gear"></i><span class="sidebar-label">Dynamic Coordinators</span>
+            </a>
+
+            <div class="sidebar-heading px-3 pt-3 pb-1 text-muted text-uppercase fw-bold" style="font-size:0.68rem; letter-spacing:0.8px;">Organization</div>
+
+            <a href="{{ route('admin.departments.index') }}" class="sidebar-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}" title="Departments">
+                <i class="bi bi-building"></i><span class="sidebar-label">Departments</span>
+            </a>
+            <a href="{{ route('admin.coordinator-types.index') }}" class="sidebar-link {{ request()->routeIs('admin.coordinator-types.*') ? 'active' : '' }}" title="Role Types">
+                <i class="bi bi-tags"></i><span class="sidebar-label">Role Types</span>
             </a>
         @elseif(auth()->user()->isHod())
             <a href="{{ route('hod.dashboard') }}" class="sidebar-link {{ request()->routeIs('hod.dashboard') ? 'active' : '' }}" title="Dashboard">
@@ -78,7 +93,7 @@
                 <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
             </a>
         @else
-            <a href="{{ route('faculty.dashboard') }}" class="sidebar-link {{ request()->requestIs('faculty.dashboard') ? 'active' : '' }}" title="Dashboard">
+            <a href="{{ route('faculty.dashboard') }}" class="sidebar-link {{ request()->routeIs('faculty.dashboard') ? 'active' : '' }}" title="Dashboard">
                 <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
             </a>
             <a href="{{ route('faculty.tasks.index') }}" class="sidebar-link {{ request()->routeIs('faculty.tasks.*') ? 'active' : '' }}" title="My Tasks">
@@ -123,6 +138,12 @@
             @php
                 $pageTitle = 'Dashboard';
                 if (request()->routeIs('*.dashboard')) $pageTitle = 'Dashboard';
+                elseif (request()->routeIs('admin.hods.*')) $pageTitle = 'HOD Accounts';
+                elseif (request()->routeIs('admin.nba-coordinators.*')) $pageTitle = 'NBA Coordinator Accounts';
+                elseif (request()->routeIs('admin.dynamic-coordinators.*')) $pageTitle = 'Dynamic Coordinator Accounts';
+                elseif (request()->routeIs('admin.departments.show')) $pageTitle = 'Department Details & Faculty';
+                elseif (request()->routeIs('admin.departments.*')) $pageTitle = 'Departments';
+                elseif (request()->routeIs('admin.coordinator-types.*')) $pageTitle = 'Role Types';
                 elseif (request()->routeIs('*.tasks.create')) $pageTitle = 'Create Task';
                 elseif (request()->routeIs('*.tasks.show')) $pageTitle = 'Task Details';
                 elseif (request()->routeIs('*.tasks.edit')) $pageTitle = 'Edit Task';

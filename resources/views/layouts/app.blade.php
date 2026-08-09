@@ -30,6 +30,7 @@
     <!-- Main Content Wrapper -->
     <div class="psg-content-wrapper" id="psgContentWrapper">
         <main class="w-100 mx-auto px-3 px-md-4 py-4" style="max-width:1400px; min-width:0;">
+            {{ $slot ?? '' }}
             @yield('content')
         </main>
     </div>
