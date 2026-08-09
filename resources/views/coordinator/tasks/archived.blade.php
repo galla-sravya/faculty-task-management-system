@@ -72,7 +72,7 @@
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border" style="font-size:0.75rem;">
-                                <i class="bi bi-person-fill me-1 text-secondary"></i>{{ $task->creator->name ?? 'HOD' }}
+                                <i class="bi bi-person-fill me-1 text-secondary"></i>{{ $task->creator->name ?? 'Coordinator' }}
                             </span>
                         </td>
                         <td>

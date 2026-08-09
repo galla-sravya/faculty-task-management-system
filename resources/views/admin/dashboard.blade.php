@@ -13,76 +13,80 @@
             </div>
         </div>
 
+        <style>
+            .hover-lift {
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            .hover-lift:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 .5rem 1rem rgba(0,0,0,.10) !important;
+                background-color: #f8f9fa;
+            }
+        </style>
         <!-- Metric Stat Cards (NO Task metrics) -->
         <div class="row g-3 mb-4">
-            <div class="col-xl-2 col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 4px solid #0d6efd !important;">
-                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">HOD Accounts</div>
-                            <div class="h3 fw-bold mb-0 text-dark">{{ $totalHod }}</div>
-                        </div>
-                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                            <i class="bi bi-person-badge fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-2 col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 4px solid #0dcaf0 !important;">
-                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">NBA Coords</div>
-                            <div class="h3 fw-bold mb-0 text-dark">{{ $totalNba }}</div>
-                        </div>
-                        <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                            <i class="bi bi-person-workspace fs-4"></i>
+            <div class="col-xl-3 col-md-6 col-sm-6">
+                <a href="{{ route('admin.hods.index') }}" class="text-decoration-none d-block h-100">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 hover-lift" style="border-left: 4px solid #0d6efd !important;">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">HOD Accounts</div>
+                                <div class="h3 fw-bold mb-0 text-dark">{{ $totalHod }}</div>
+                            </div>
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-person-badge fs-4"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-4 col-sm-6">
-                <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 4px solid #6f42c1 !important;">
-                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">Dynamic Coords</div>
-                            <div class="h3 fw-bold mb-0 text-dark">{{ $totalCoordinators }}</div>
-                        </div>
-                        <div class="rounded-circle bg-purple bg-opacity-10 p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(111, 66, 193, 0.1); color: #6f42c1;">
-                            <i class="bi bi-person-gear fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-2 col-md-6 col-sm-6">
-                <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 4px solid #198754 !important;">
-                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">Departments</div>
-                            <div class="h3 fw-bold mb-0 text-dark">{{ $totalDepartments }}</div>
-                        </div>
-                        <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                            <i class="bi bi-building fs-4"></i>
-                        </div>
-                    </div>
-                </div>
+                </a>
             </div>
 
             <div class="col-xl-3 col-md-6 col-sm-6">
-                <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 4px solid #fd7e14 !important;">
-                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">Total Faculty</div>
-                            <div class="h3 fw-bold mb-0 text-dark">{{ $totalFaculty }}</div>
-                        </div>
-                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                            <i class="bi bi-people fs-4"></i>
+                <a href="{{ route('admin.nba-coordinators.index') }}" class="text-decoration-none d-block h-100">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 hover-lift" style="border-left: 4px solid #0dcaf0 !important;">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">NBA Coords</div>
+                                <div class="h3 fw-bold mb-0 text-dark">{{ $totalNba }}</div>
+                            </div>
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-person-workspace fs-4"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
+            </div>
+
+            <div class="col-xl-3 col-md-6 col-sm-6">
+                <a href="{{ route('admin.dynamic-coordinators.index') }}" class="text-decoration-none d-block h-100">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 hover-lift" style="border-left: 4px solid #6f42c1 !important;">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">Dynamic Coords</div>
+                                <div class="h3 fw-bold mb-0 text-dark">{{ $totalCoordinators }}</div>
+                            </div>
+                            <div class="rounded-circle bg-purple bg-opacity-10 p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: rgba(111, 66, 193, 0.1); color: #6f42c1;">
+                                <i class="bi bi-person-gear fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-xl-3 col-md-6 col-sm-6">
+                <a href="{{ route('admin.departments.index') }}" class="text-decoration-none d-block h-100">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 hover-lift" style="border-left: 4px solid #198754 !important;">
+                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-uppercase text-muted fw-bold small" style="font-size: 0.72rem;">Departments</div>
+                                <div class="h3 fw-bold mb-0 text-dark">{{ $totalDepartments }}</div>
+                            </div>
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-building fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
             </div>
         </div>
 

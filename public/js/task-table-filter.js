@@ -61,8 +61,14 @@ function setupWrapperFiltering(wrapper) {
             faculty: 'all',
             category: 'all',
             progress: 'all'
-        }
+        },
+        sort: { col: null, dir: 'asc' }
     };
+
+    // Ensure sort state exists for legacy cached state
+    if (!state.sort) {
+        state.sort = { col: null, dir: 'asc' };
+    }
 
     // Store original row elements
     const originalRows = Array.from(tbody.querySelectorAll('tr[data-task-row]'));
@@ -97,6 +103,10 @@ function setupWrapperFiltering(wrapper) {
             }
         });
 
+        if (state.sort && state.sort.col) {
+            sortRows(filteredRows, state.sort);
+        }
+
         // Render filtered rows back into tbody
         tbody.innerHTML = '';
         if (filteredRows.length > 0) {
@@ -128,6 +138,8 @@ function setupWrapperFiltering(wrapper) {
 
         // Highlight header labels with active filters
         updateHeaderActiveStates(table, state);
+
+        updateSortIcons(table, state);
 
         // Persist filter state in sessionStorage
         saveState(storageKey, state);
@@ -177,11 +189,30 @@ function setupInlineHeaders(table, state, dynamicFaculty, dynamicCategories, app
 
         // Render column heading with inline dropdown template
         th.innerHTML = `
-            <span class="th-filter-label">${titleText}</span>
+            <span class="th-filter-label" style="display:inline-flex; align-items:center;">${titleText}</span>
             <div class="th-inline-dropdown" onclick="event.stopPropagation();">
                 ${renderDropdownContent(colKey, state, dynamicFaculty, dynamicCategories)}
             </div>
         `;
+
+        const label = th.querySelector('.th-filter-label');
+        if (label) {
+            label.addEventListener('dblclick', function (e) {
+                e.stopPropagation();
+                if (state.sort && state.sort.col === colKey) {
+                    state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.sort = { col: colKey, dir: 'asc' };
+                }
+                applyCallback();
+            });
+            // Prevent text selection on double click
+            label.addEventListener('mousedown', function (e) {
+                if (e.detail > 1) {
+                    e.preventDefault();
+                }
+            });
+        }
 
         // Toggle dropdown on header click with fixed positioning
         th.addEventListener('click', function (e) {
@@ -655,4 +686,71 @@ function formatDeadlineFilterLabel(df) {
         this_month: 'This Month'
     };
     return map[df] || df;
+}
+
+function sortRows(rows, sortState) {
+    const { col, dir } = sortState;
+    const modifier = dir === 'asc' ? 1 : -1;
+
+    rows.sort((a, b) => {
+        if (col === 'priority') {
+            const map = { 'urgent': 4, 'high': 3, 'medium': 2, 'low': 1 };
+            const valA = map[(a.getAttribute('data-priority') || '').toLowerCase()] || 0;
+            const valB = map[(b.getAttribute('data-priority') || '').toLowerCase()] || 0;
+            return (valB - valA) * modifier;
+        } else if (col === 'deadline') {
+            const valA = a.getAttribute('data-deadline-date') || '9999-12-31';
+            const valB = b.getAttribute('data-deadline-date') || '9999-12-31';
+            if (valA < valB) return -1 * modifier;
+            if (valA > valB) return 1 * modifier;
+            return 0;
+        } else if (col === 'status') {
+            const map = { 
+                'overdue': 4, 
+                'in_progress': 3, 'working_on_task': 3, 'collecting_resources': 3, 
+                'not_started': 2, 'pending': 2, 'pending_review': 2, 'submitted_for_review': 2, 'documents_uploaded': 2, 'checklist_completed': 2, 
+                'completed': 1 
+            };
+            const valA = map[(a.getAttribute('data-status') || '').toLowerCase()] || 0;
+            const valB = map[(b.getAttribute('data-status') || '').toLowerCase()] || 0;
+            return (valB - valA) * modifier;
+        } else if (col === 'faculty') {
+            const valA = (a.getAttribute('data-faculty') || '').toLowerCase();
+            const valB = (b.getAttribute('data-faculty') || '').toLowerCase();
+            if (valA < valB) return -1 * modifier;
+            if (valA > valB) return 1 * modifier;
+            return 0;
+        } else if (col === 'title') {
+            const valA = (a.getAttribute('data-title') || a.innerText || '').toLowerCase();
+            const valB = (b.getAttribute('data-title') || b.innerText || '').toLowerCase();
+            if (valA < valB) return -1 * modifier;
+            if (valA > valB) return 1 * modifier;
+            return 0;
+        }
+        return 0;
+    });
+}
+
+function updateSortIcons(table, state) {
+    const headers = table.querySelectorAll('th[data-filter-col]');
+    headers.forEach(th => {
+        const colKey = th.getAttribute('data-filter-col');
+        const label = th.querySelector('.th-filter-label');
+        if (!label) return;
+        
+        // Remove existing arrow
+        const existingArrow = label.querySelector('.sort-arrow');
+        if (existingArrow) {
+            existingArrow.remove();
+        }
+
+        if (state.sort && state.sort.col === colKey) {
+            const arrow = document.createElement('span');
+            arrow.className = 'sort-arrow ms-1 text-muted';
+            arrow.style.fontSize = '0.65rem';
+            // Use down arrow for 'asc' (descending urgency/alphabetical) and up arrow for 'desc'
+            arrow.textContent = state.sort.dir === 'asc' ? '▼' : '▲';
+            label.appendChild(arrow);
+        }
+    });
 }

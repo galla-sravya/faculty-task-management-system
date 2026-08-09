@@ -242,5 +242,6 @@
     <script src="{{ asset('js/task-table-filter.js') }}?v={{ filemtime(public_path('js/task-table-filter.js')) }}"></script>
 
     @yield('scripts')
+    <script src="{{ asset('js/workload-warning.js') }}"></script>
 </body>
 </html>

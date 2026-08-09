@@ -13,7 +13,7 @@
 
 <div class="card border-0 shadow-sm rounded-3">
     <div class="card-body p-4">
-        <form action="{{ route('nba.tasks.store') }}" method="POST">
+        <form action="{{ route('nba.tasks.store') }}" method="POST" class="workload-check-form">
             @csrf
             <div class="row g-3">
                 <div class="col-md-8">

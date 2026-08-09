@@ -15,7 +15,6 @@ class DashboardController extends Controller
         $totalHod = User::where('role', 'hod')->count();
         $totalNba = User::where('role', 'nba_coordinator')->count();
         $totalCoordinators = User::where('role', 'coordinator')->count();
-        $totalFaculty = User::where('role', 'faculty')->count();
         $totalDepartments = Department::count();
 
         // Department Overview
@@ -42,7 +41,6 @@ class DashboardController extends Controller
             'totalHod',
             'totalNba',
             'totalCoordinators',
-            'totalFaculty',
             'totalDepartments',
             'departments',
             'dynamicCoordinators',

@@ -13,7 +13,7 @@
 
 <div class="card border-0 shadow-sm rounded-3">
     <div class="card-body p-4">
-        <form action="{{ route('nba.tasks.update', $task) }}" method="POST">
+        <form action="{{ route('nba.tasks.update', $task) }}" method="POST" class="workload-check-form" data-task-id="{{ $task->id }}">
             @csrf
             @method('PUT')
             <div class="row g-3">

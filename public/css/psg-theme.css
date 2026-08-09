@@ -538,12 +538,13 @@ body.sidebar-collapsed .sidebar-link.active::before,
     top: 100%;
     left: 0;
     z-index: 1060;
-    min-width: 200px;
-    max-width: 260px;
+    min-width: 220px;
+    max-width: 280px;
     background: #fff;
     border: 1px solid #dce3eb;
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
+    border-top: 4px solid var(--navy, #12275a);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     padding: 0;
     margin-top: 4px;
     opacity: 0;
@@ -558,14 +559,14 @@ body.sidebar-collapsed .sidebar-link.active::before,
     pointer-events: auto;
 }
 .th-dropdown-inner {
-    padding: 12px 14px;
+    padding: 16px;
 }
 .th-dropdown-title {
     font-size: 0.70rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--navy, #12275a);
+    color: var(--gold, #f0a500);
     margin-bottom: 8px;
     padding-bottom: 6px;
     border-bottom: 1px solid #eef1f5;
@@ -575,6 +576,11 @@ body.sidebar-collapsed .sidebar-link.active::before,
     font-size: 0.82rem;
     border-radius: 6px;
     border-color: #dce3eb;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.th-dropdown-inner .form-select:hover,
+.th-dropdown-inner .form-control:hover {
+    border-color: var(--navy, #12275a);
 }
 .th-dropdown-inner .form-select:focus,
 .th-dropdown-inner .form-control:focus {

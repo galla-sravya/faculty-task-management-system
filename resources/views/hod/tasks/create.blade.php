@@ -20,7 +20,7 @@
                 </h6>
             </div>
             <div class="card-body p-4">
-                <form action="{{ route('hod.tasks.store') }}" method="POST">
+                <form action="{{ route('hod.tasks.store') }}" method="POST" class="workload-check-form">
                     @csrf
 
                     <div class="mb-4">

@@ -97,7 +97,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Generic Coordinator Routes
     Route::middleware('role:coordinator')->prefix('coordinator')->name('coordinator.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Coordinator\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/api/charts', [App\Http\Controllers\Coordinator\DashboardController::class, 'chartsData'])->name('api.charts');
+        Route::get('/api/dashboard-filter', [App\Http\Controllers\Coordinator\DashboardController::class, 'filterData'])->name('api.filter');
+        
+        // Archived tasks & restore
+        Route::get('tasks/archived', [App\Http\Controllers\Coordinator\TaskController::class, 'archived'])->name('tasks.archived');
+        Route::post('tasks/{task}/restore', [App\Http\Controllers\Coordinator\TaskController::class, 'restore'])->name('tasks.restore');
+
         Route::resource('tasks', App\Http\Controllers\Coordinator\TaskController::class)->withTrashed(['show']);
+
+        Route::get('reports', [App\Http\Controllers\Coordinator\ReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/export/csv', [App\Http\Controllers\Coordinator\ReportController::class, 'exportCsv'])->name('reports.export');
+        Route::get('reports/{task}', [App\Http\Controllers\Coordinator\ReportController::class, 'show'])->name('reports.show');
+
+        // Document review routes
+        Route::post('tasks/{task}/documents/{document}/review', [App\Http\Controllers\Coordinator\TaskDocumentController::class, 'review'])->name('tasks.documents.review')->withTrashed();
+        Route::get('tasks/{task}/documents/{document}/download', [App\Http\Controllers\Coordinator\TaskDocumentController::class, 'download'])->name('tasks.documents.download')->withTrashed();
+        Route::get('tasks/{task}/documents/{document}/versions', [App\Http\Controllers\Coordinator\TaskDocumentController::class, 'versions'])->name('tasks.documents.versions')->withTrashed();
+
+        // Coordinator Faculty Management (view-only — no create/store)
+        Route::get('faculty', [App\Http\Controllers\Coordinator\FacultyController::class, 'index'])->name('faculty.index');
+        Route::get('faculty/{faculty}/performance', [App\Http\Controllers\Coordinator\FacultyController::class, 'performance'])->name('faculty.performance');
     });
 
     // NBA Coordinator Routes
@@ -192,6 +212,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Task Comments Routes
     Route::post('/tasks/{task}/comments', [App\Http\Controllers\TaskCommentController::class, 'store'])->name('tasks.comments.store')->withTrashed();
+
+    // Workload Check
+    Route::post('/tasks/workload-check', [App\Http\Controllers\WorkloadCheckController::class, 'check'])->name('tasks.workload-check');
 
     // Task Checklist / Subtasks Routes
     Route::post('/tasks/{task}/checklist', [App\Http\Controllers\TaskChecklistController::class, 'store'])->name('tasks.checklist.store')->withTrashed();

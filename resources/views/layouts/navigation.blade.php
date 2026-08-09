@@ -86,11 +86,20 @@
             <a href="{{ route('coordinator.dashboard') }}" class="sidebar-link {{ request()->routeIs('coordinator.dashboard') ? 'active' : '' }}" title="Dashboard">
                 <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
             </a>
-            <a href="{{ route('coordinator.tasks.index') }}" class="sidebar-link {{ request()->routeIs('coordinator.tasks.*') ? 'active' : '' }}" title="Tasks">
+            <a href="{{ route('coordinator.tasks.index') }}" class="sidebar-link {{ request()->routeIs('coordinator.tasks.*') && !request()->routeIs('coordinator.tasks.archived') ? 'active' : '' }}" title="Tasks">
                 <i class="bi bi-list-task"></i><span class="sidebar-label">Tasks</span>
+            </a>
+            <a href="{{ route('coordinator.faculty.index') }}" class="sidebar-link {{ request()->routeIs('coordinator.faculty.*') ? 'active' : '' }}" title="Faculty">
+                <i class="bi bi-people"></i><span class="sidebar-label">Faculty</span>
             </a>
             <a href="{{ route('calendar.index') }}" class="sidebar-link {{ request()->routeIs('calendar.index') ? 'active' : '' }}" title="Calendar">
                 <i class="bi bi-calendar3"></i><span class="sidebar-label">Calendar</span>
+            </a>
+            <a href="{{ route('coordinator.reports.index') }}" class="sidebar-link {{ request()->routeIs('coordinator.reports.*') ? 'active' : '' }}" title="Reports">
+                <i class="bi bi-bar-chart-line"></i><span class="sidebar-label">Reports</span>
+            </a>
+            <a href="{{ route('coordinator.tasks.archived') }}" class="sidebar-link {{ request()->routeIs('coordinator.tasks.archived') ? 'active' : '' }}" title="Archived Tasks">
+                <i class="bi bi-archive"></i><span class="sidebar-label">Archived Tasks</span>
             </a>
         @else
             <a href="{{ route('faculty.dashboard') }}" class="sidebar-link {{ request()->routeIs('faculty.dashboard') ? 'active' : '' }}" title="Dashboard">

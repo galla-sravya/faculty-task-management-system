@@ -3,10 +3,14 @@
 
 @php
     $assignerRole = 'Head of Department';
-    if ($task->owner_role === 'nba_coordinator' || ($task->creator && $task->creator->role === 'nba_coordinator')) {
-        $assignerRole = 'NBA Coordinator';
-    } elseif ($task->owner_role === 'faculty') {
-        $assignerRole = 'Faculty Member';
+    if ($task->creator) {
+        if ($task->creator->role === 'nba_coordinator') {
+            $assignerRole = 'NBA Coordinator';
+        } elseif ($task->creator->role === 'coordinator' && $task->creator->coordinatorType) {
+            $assignerRole = $task->creator->coordinatorType->name;
+        } elseif ($task->creator->role === 'faculty') {
+            $assignerRole = 'Faculty Member';
+        }
     }
 @endphp
 

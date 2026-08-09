@@ -373,7 +373,7 @@
 @can('addCollaborator', $task)
 <div class="modal fade" id="addCollaboratorModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <form action="{{ route('tasks.collaborators.store', $task) }}" method="POST">
+        <form action="{{ route('tasks.collaborators.store', $task) }}" method="POST" class="workload-check-form" data-task-id="{{ $task->id }}">
             @csrf
             <div class="modal-content">
                 <div class="modal-header">
@@ -418,7 +418,7 @@
 <div class="modal fade" id="reassignTaskModal" tabindex="-1" aria-labelledby="reassignTaskModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <form method="POST" action="{{ route('tasks.reassign', $task) }}">
+            <form method="POST" action="{{ route('tasks.reassign', $task) }}" class="workload-check-form" data-task-id="{{ $task->id }}">
                 @csrf
                 <div class="modal-header border-bottom py-3" style="background: linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%);">
                     <h5 class="modal-title text-white fw-bold" id="reassignTaskModalLabel">
