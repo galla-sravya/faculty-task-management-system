@@ -41,6 +41,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('global.search');
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar.index');
 
+    // Workload Check
+    Route::post('/tasks/check-workload', [App\Http\Controllers\WorkloadController::class, 'check'])->name('tasks.checkWorkload');
+
     // Smart task redirect — works for any role (used in email links)
     Route::get('/tasks/{task}/view', function (App\Models\Task $task) {
         $user = auth()->user();

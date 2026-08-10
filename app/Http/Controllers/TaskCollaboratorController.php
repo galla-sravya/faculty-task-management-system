@@ -55,16 +55,20 @@ class TaskCollaboratorController extends Controller
                 'assigned_at'         => now(),
             ]);
 
-            // Also insert into task_assignments tracking table
-            TaskAssignment::create([
-                'task_id'     => $task->id,
-                'faculty_id'  => $facultyId,
-                'assigned_by' => auth()->id(),
-                'role'        => $role,
-                'status'      => 'pending',
-                'reason'      => $reason,
-                'assigned_at' => now(),
-            ]);
+            // Also insert/update task_assignments tracking table
+            TaskAssignment::updateOrCreate(
+                [
+                    'task_id'     => $task->id,
+                    'faculty_id'  => $facultyId,
+                ],
+                [
+                    'assigned_by' => auth()->id(),
+                    'role'        => $role,
+                    'status'      => 'pending',
+                    'reason'      => $reason,
+                    'assigned_at' => now(),
+                ]
+            );
 
             $faculty = User::find($facultyId);
             $added[] = $faculty->name;

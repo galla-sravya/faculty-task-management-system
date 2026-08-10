@@ -71,13 +71,15 @@
         <div class="row g-3">
             @foreach($faculties as $f)
                 <div class="col-md-4">
-                    <div class="p-3 border rounded bg-light d-flex align-items-center gap-3">
-                        <img src="{{ $f->profile_photo_url }}" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;border:2px solid var(--navy);">
-                        <div>
-                            <div class="fw-semibold text-dark" style="font-size:0.9rem;">{{ $f->name }}</div>
-                            <div class="text-muted small" style="font-size:0.75rem;">{{ $f->designation ?? 'Faculty' }}</div>
+                    <a href="{{ route('hod.faculty.performance', $f) }}" class="text-decoration-none d-block">
+                        <div class="p-3 border rounded bg-light d-flex align-items-center gap-3 transition-hover shadow-sm-hover">
+                            <img src="{{ $f->profile_photo_url }}" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;border:2px solid var(--navy);">
+                            <div>
+                                <div class="fw-semibold text-dark" style="font-size:0.9rem;">{{ $f->name }}</div>
+                                <div class="text-muted small" style="font-size:0.75rem;">{{ $f->designation ?? 'Faculty' }}</div>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             @endforeach
         </div>

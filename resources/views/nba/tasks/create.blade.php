@@ -13,7 +13,7 @@
 
 <div class="card border-0 shadow-sm rounded-3">
     <div class="card-body p-4">
-        <form action="{{ route('nba.tasks.store') }}" method="POST" class="workload-check-form">
+        <form id="createTaskForm" action="{{ route('nba.tasks.store') }}" method="POST">
             @csrf
             <div class="row g-3">
                 <div class="col-md-8">
@@ -74,9 +74,114 @@
 
             <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                 <a href="{{ route('nba.tasks.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
-                <button type="submit" class="btn btn-psg-primary px-4 fw-semibold"><i class="bi bi-check-lg me-1"></i> Create & Assign Task</button>
+                <button type="button" id="submitTaskBtn" class="btn btn-psg-primary px-4 fw-semibold"><i class="bi bi-check-lg me-1"></i> Create & Assign Task</button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Faculty Workload Info Modal -->
+<div class="modal fade" id="workloadInfoModal" tabindex="-1" aria-labelledby="workloadInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow" style="border-top: 4px solid var(--navy) !important;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="workloadInfoModalLabel" style="color: var(--navy);">
+            <i class="bi bi-info-circle-fill me-2"></i>Faculty Workload Info
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-3 pb-2">
+        <p class="mb-3 text-secondary">Just a quick note about the current workload for the selected faculty:</p>
+        <ul id="workloadInfoList" class="mb-4" style="color: #555;"></ul>
+        <p class="mb-0 fw-medium text-dark">Would you like to proceed with assigning this task?</p>
+      </div>
+      <div class="modal-footer border-top-0 pt-0 pb-3">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Go Back</button>
+        <button type="button" class="btn fw-semibold text-white" style="background-color: var(--navy);" id="confirmAssignBtn">Proceed & Assign</button>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const submitBtn = document.getElementById('submitTaskBtn');
+    const form = document.getElementById('createTaskForm');
+    const confirmBtn = document.getElementById('confirmAssignBtn');
+    const infoModal = new bootstrap.Modal(document.getElementById('workloadInfoModal'));
+    const infoList = document.getElementById('workloadInfoList');
+
+    submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Basic HTML5 validation
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const assigneesSelect = form.querySelector('select[name="assignees[]"]');
+        const deadlineInput = form.querySelector('input[name="deadline"]');
+        
+        const assignees = Array.from(assigneesSelect.selectedOptions).map(opt => opt.value);
+        const deadline = deadlineInput.value;
+
+        if (assignees.length === 0 || !deadline) {
+            form.submit();
+            return;
+        }
+
+        // Disable button and show spinner
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Checking...';
+
+        fetch('{{ route('tasks.checkWorkload') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                assignees: assignees,
+                deadline: deadline
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+
+            if (data.warnings && data.warnings.length > 0) {
+                infoList.innerHTML = '';
+                data.warnings.forEach(warning => {
+                    const li = document.createElement('li');
+                    li.innerHTML = warning;
+                    li.className = 'mb-1';
+                    infoList.appendChild(li);
+                });
+                infoModal.show();
+            } else {
+                form.submit();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking workload:', error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            // On error, just submit the form anyway
+            form.submit();
+        });
+    });
+
+    confirmBtn.addEventListener('click', function() {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Assigning...';
+        form.submit();
+    });
+});
+</script>
 @endsection

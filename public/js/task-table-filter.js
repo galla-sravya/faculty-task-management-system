@@ -704,6 +704,12 @@ function sortRows(rows, sortState) {
             if (valA < valB) return -1 * modifier;
             if (valA > valB) return 1 * modifier;
             return 0;
+        } else if (col === 'assigned_date') {
+            const valA = a.getAttribute('data-assigned-date') || '0000-01-01';
+            const valB = b.getAttribute('data-assigned-date') || '0000-01-01';
+            if (valA < valB) return -1 * modifier;
+            if (valA > valB) return 1 * modifier;
+            return 0;
         } else if (col === 'status') {
             const map = { 
                 'overdue': 4, 
@@ -726,6 +732,16 @@ function sortRows(rows, sortState) {
             if (valA < valB) return -1 * modifier;
             if (valA > valB) return 1 * modifier;
             return 0;
+        } else if (col === 'category') {
+            const valA = (a.getAttribute('data-category') || '').toLowerCase();
+            const valB = (b.getAttribute('data-category') || '').toLowerCase();
+            if (valA < valB) return -1 * modifier;
+            if (valA > valB) return 1 * modifier;
+            return 0;
+        } else if (col === 'progress') {
+            const valA = parseInt(a.getAttribute('data-progress') || '0', 10);
+            const valB = parseInt(b.getAttribute('data-progress') || '0', 10);
+            return (valA - valB) * modifier;
         }
         return 0;
     });
