@@ -86,49 +86,51 @@
                                     {{ $coord->created_at ? $coord->created_at->format('M d, Y') : '-' }}
                                 </td>
                                 <td class="text-end">
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            Actions
+                                    <div class="position-relative d-inline-block">
+                                        <button class="btn btn-sm btn-light border admin-actions-btn" type="button" data-actions-id="{{ $coord->id }}">
+                                            Actions <i class="bi bi-chevron-down ms-1 small"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow border">
-                                            <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#viewCoordModal{{ $coord->id }}">
-                                                    <i class="bi bi-eye text-info"></i> View Details
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editCoordModal{{ $coord->id }}">
-                                                    <i class="bi bi-pencil text-primary"></i> Edit Account
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $coord->id }}">
-                                                    <i class="bi bi-key text-warning"></i> Reset Password
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <form action="{{ route('admin.dynamic-coordinators.toggleStatus', $coord) }}" method="POST">
-                                                    @csrf
-                                                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
-                                                        @if(($coord->status ?? 'active') === 'active')
-                                                            <i class="bi bi-person-x text-secondary"></i> Deactivate
-                                                        @else
-                                                            <i class="bi bi-person-check text-success"></i> Activate
-                                                        @endif
+                                        <div class="d-none" id="adminActionsTemplate{{ $coord->id }}">
+                                            <ul class="list-unstyled mb-0 py-1">
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#viewCoordModal{{ $coord->id }}">
+                                                        <i class="bi bi-eye text-info"></i> View Details
                                                     </button>
-                                                </form>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('admin.dynamic-coordinators.destroy', $coord) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this coordinator account?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2">
-                                                        <i class="bi bi-trash"></i> Delete Account
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#editCoordModal{{ $coord->id }}">
+                                                        <i class="bi bi-pencil text-primary"></i> Edit Account
                                                     </button>
-                                                </form>
-                                            </li>
-                                        </ul>
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $coord->id }}">
+                                                        <i class="bi bi-key text-warning"></i> Reset Password
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <form action="{{ route('admin.dynamic-coordinators.toggleStatus', $coord) }}" method="POST" class="m-0 p-0">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start">
+                                                            @if(($coord->status ?? 'active') === 'active')
+                                                                <i class="bi bi-person-x text-secondary"></i> Deactivate
+                                                            @else
+                                                                <i class="bi bi-person-check text-success"></i> Activate
+                                                            @endif
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <form action="{{ route('admin.dynamic-coordinators.destroy', $coord) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this coordinator account?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 py-2 px-3 text-decoration-none border-0 bg-transparent w-100 text-start">
+                                                            <i class="bi bi-trash"></i> Delete Account
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
 
                                     <!-- View Details Modal -->

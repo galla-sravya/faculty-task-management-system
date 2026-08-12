@@ -243,5 +243,136 @@
 
     @yield('scripts')
     <script src="{{ asset('js/workload-warning.js') }}"></script>
+
+    <!-- Global Actions Dropdown Portal Container -->
+    <div id="adminActionsPortal" class="admin-actions-portal shadow-lg border rounded-3 bg-white" style="display: none; position: fixed; z-index: 1095; min-width: 190px; max-height: calc(100vh - 16px); overflow-y: auto;"></div>
+
+    <style>
+        .admin-actions-portal .dropdown-item:hover {
+            background-color: #f8f9fa !important;
+        }
+        .admin-actions-portal .dropdown-item.text-danger:hover {
+            background-color: #fee2e2 !important;
+        }
+    </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const portal = document.getElementById('adminActionsPortal');
+        let currentActiveBtn = null;
+
+        function closePortal() {
+            if (portal) {
+                portal.style.display = 'none';
+                portal.innerHTML = '';
+            }
+            if (currentActiveBtn) {
+                currentActiveBtn.classList.remove('active');
+                currentActiveBtn = null;
+            }
+        }
+
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.admin-actions-btn, .hod-actions-btn');
+            if (btn) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const actionsId = btn.getAttribute('data-actions-id') || btn.getAttribute('data-hod-id');
+                const template = document.getElementById('adminActionsTemplate' + actionsId) || document.getElementById('hodActionsMenuTemplate' + actionsId);
+                if (!template) return;
+
+                if (currentActiveBtn === btn) {
+                    closePortal();
+                    return;
+                }
+
+                closePortal();
+
+                portal.innerHTML = template.innerHTML;
+                portal.style.display = 'block';
+                portal.style.visibility = 'hidden';
+
+                const btnRect = btn.getBoundingClientRect();
+                const portalHeight = portal.offsetHeight;
+                const portalWidth = portal.offsetWidth;
+
+                portal.style.visibility = '';
+
+                const spaceBelow = window.innerHeight - btnRect.bottom;
+                const spaceAbove = btnRect.top;
+
+                let left = btnRect.right - portalWidth;
+                if (left < 8) left = 8;
+                if (left + portalWidth > window.innerWidth - 8) left = window.innerWidth - portalWidth - 8;
+                portal.style.left = left + 'px';
+
+                if (spaceBelow >= portalHeight || spaceBelow >= spaceAbove) {
+                    portal.style.top = (btnRect.bottom + 4) + 'px';
+                } else {
+                    portal.style.top = Math.max(8, btnRect.top - portalHeight - 4) + 'px';
+                }
+
+                currentActiveBtn = btn;
+                btn.classList.add('active');
+                return;
+            }
+
+            if (portal && portal.style.display !== 'none') {
+                if (!portal.contains(e.target)) {
+                    closePortal();
+                }
+            }
+        });
+
+        if (portal) {
+            portal.addEventListener('click', function (e) {
+                const modalBtn = e.target.closest('[data-bs-toggle="modal"]');
+                if (modalBtn) {
+                    const targetSelector = modalBtn.getAttribute('data-bs-target');
+                    closePortal();
+                    if (targetSelector) {
+                        const modalEl = document.querySelector(targetSelector);
+                        if (modalEl && typeof bootstrap !== 'undefined') {
+                            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                            modal.show();
+                        }
+                    }
+                    return;
+                }
+
+                const submitBtn = e.target.closest('button[type="submit"]');
+                if (submitBtn) {
+                    const form = submitBtn.closest('form');
+                    if (form) {
+                        closePortal();
+                        const onsubmitAttr = form.getAttribute('onsubmit');
+                        if (onsubmitAttr) {
+                            const confirmMatch = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
+                            const confirmMsg = confirmMatch ? confirmMatch[1] : 'Are you sure you want to proceed?';
+                            if (!confirm(confirmMsg)) {
+                                e.preventDefault();
+                                return;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('scroll', function () {
+            if (portal && portal.style.display !== 'none') {
+                closePortal();
+            }
+        }, { capture: true, passive: true });
+
+        window.addEventListener('resize', closePortal, { passive: true });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closePortal();
+            }
+        });
+    });
+    </script>
 </body>
 </html>
