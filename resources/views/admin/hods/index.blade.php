@@ -77,49 +77,51 @@
                                     {{ $hod->created_at ? $hod->created_at->format('M d, Y') : '-' }}
                                 </td>
                                 <td class="text-end">
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            Actions
+                                    <div class="position-relative d-inline-block">
+                                        <button class="btn btn-sm btn-light border hod-actions-btn" type="button" data-hod-id="{{ $hod->id }}">
+                                            Actions <i class="bi bi-chevron-down ms-1 small"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow border">
-                                            <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#viewHodModal{{ $hod->id }}">
-                                                    <i class="bi bi-eye text-info"></i> View Details
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editHodModal{{ $hod->id }}">
-                                                    <i class="bi bi-pencil text-primary"></i> Edit HOD
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $hod->id }}">
-                                                    <i class="bi bi-key text-warning"></i> Reset Password
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <form action="{{ route('admin.hods.toggleStatus', $hod) }}" method="POST">
-                                                    @csrf
-                                                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
-                                                        @if(($hod->status ?? 'active') === 'active')
-                                                            <i class="bi bi-person-x text-secondary"></i> Deactivate
-                                                        @else
-                                                            <i class="bi bi-person-check text-success"></i> Activate
-                                                        @endif
+                                        <div class="d-none" id="hodActionsMenuTemplate{{ $hod->id }}">
+                                            <ul class="list-unstyled mb-0 py-1">
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#viewHodModal{{ $hod->id }}">
+                                                        <i class="bi bi-eye text-info"></i> View Details
                                                     </button>
-                                                </form>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('admin.hods.destroy', $hod) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this HOD account? This action cannot be undone.');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2">
-                                                        <i class="bi bi-trash"></i> Delete Account
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#editHodModal{{ $hod->id }}">
+                                                        <i class="bi bi-pencil text-primary"></i> Edit HOD
                                                     </button>
-                                                </form>
-                                            </li>
-                                        </ul>
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $hod->id }}">
+                                                        <i class="bi bi-key text-warning"></i> Reset Password
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <form action="{{ route('admin.hods.toggleStatus', $hod) }}" method="POST" class="m-0 p-0">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start">
+                                                            @if(($hod->status ?? 'active') === 'active')
+                                                                <i class="bi bi-person-x text-secondary"></i> Deactivate
+                                                            @else
+                                                                <i class="bi bi-person-check text-success"></i> Activate
+                                                            @endif
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <form action="{{ route('admin.hods.destroy', $hod) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this HOD account? This action cannot be undone.');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 py-2 px-3 text-decoration-none border-0 bg-transparent w-100 text-start">
+                                                            <i class="bi bi-trash"></i> Delete Account
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
 
                                     <!-- View Details Modal -->
@@ -301,4 +303,143 @@
             </div>
         </div>
     </div>
+
+{{-- Portal Container for Floating Actions Menu --}}
+<div id="hodActionsPortal" class="hod-actions-portal shadow-lg border rounded-3 bg-white" style="display: none; position: fixed; z-index: 1095; min-width: 190px; max-height: calc(100vh - 16px); overflow-y: auto;"></div>
+
+<style>
+    .hod-actions-portal .dropdown-item:hover {
+        background-color: #f8f9fa !important;
+    }
+    .hod-actions-portal .dropdown-item.text-danger:hover {
+        background-color: #fee2e2 !important;
+    }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const portal = document.getElementById('hodActionsPortal');
+    let currentActiveBtn = null;
+
+    function closePortal() {
+        if (portal) {
+            portal.style.display = 'none';
+            portal.innerHTML = '';
+        }
+        if (currentActiveBtn) {
+            currentActiveBtn.classList.remove('active');
+            currentActiveBtn = null;
+        }
+    }
+
+    document.querySelectorAll('.hod-actions-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const hodId = btn.getAttribute('data-hod-id');
+            const template = document.getElementById('hodActionsMenuTemplate' + hodId);
+            if (!template) return;
+
+            // Toggle if clicking the active button
+            if (currentActiveBtn === btn) {
+                closePortal();
+                return;
+            }
+
+            // Close existing open portal
+            closePortal();
+
+            // Populate portal with template content
+            portal.innerHTML = template.innerHTML;
+            portal.style.display = 'block';
+            portal.style.visibility = 'hidden';
+
+            // Measure dimensions
+            const btnRect = btn.getBoundingClientRect();
+            const portalHeight = portal.offsetHeight;
+            const portalWidth = portal.offsetWidth;
+
+            portal.style.visibility = '';
+
+            const spaceBelow = window.innerHeight - btnRect.bottom;
+            const spaceAbove = btnRect.top;
+
+            // Align right edge with button right edge
+            let left = btnRect.right - portalWidth;
+            if (left < 8) left = 8;
+            if (left + portalWidth > window.innerWidth - 8) left = window.innerWidth - portalWidth - 8;
+            portal.style.left = left + 'px';
+
+            // Decide downward vs upward
+            if (spaceBelow >= portalHeight || spaceBelow >= spaceAbove) {
+                portal.style.top = (btnRect.bottom + 4) + 'px';
+            } else {
+                portal.style.top = Math.max(8, btnRect.top - portalHeight - 4) + 'px';
+            }
+
+            currentActiveBtn = btn;
+            btn.classList.add('active');
+        });
+    });
+
+    // Delegate clicks inside the portal
+    if (portal) {
+        portal.addEventListener('click', function (e) {
+            const modalBtn = e.target.closest('[data-bs-toggle="modal"]');
+            if (modalBtn) {
+                const targetSelector = modalBtn.getAttribute('data-bs-target');
+                closePortal();
+                if (targetSelector) {
+                    const modalEl = document.querySelector(targetSelector);
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+                }
+                return;
+            }
+
+            const submitBtn = e.target.closest('button[type="submit"]');
+            if (submitBtn) {
+                const form = submitBtn.closest('form');
+                if (form) {
+                    closePortal();
+                    const onsubmitAttr = form.getAttribute('onsubmit');
+                    if (onsubmitAttr) {
+                        if (!confirm('Are you sure you want to delete this HOD account? This action cannot be undone.')) {
+                            e.preventDefault();
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Close portal on outside click
+    document.addEventListener('click', function (e) {
+        if (portal && portal.style.display !== 'none') {
+            if (!portal.contains(e.target) && !e.target.closest('.hod-actions-btn')) {
+                closePortal();
+            }
+        }
+    });
+
+    // Close portal on window scroll or resize
+    window.addEventListener('scroll', function () {
+        if (portal && portal.style.display !== 'none') {
+            closePortal();
+        }
+    }, { capture: true, passive: true });
+
+    window.addEventListener('resize', closePortal, { passive: true });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closePortal();
+        }
+    });
+});
+</script>
 </x-app-layout>
