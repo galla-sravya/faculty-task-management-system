@@ -61,14 +61,8 @@
 
                 <div class="col-12">
                     <label class="form-label fw-semibold text-navy">Assign To Faculty <span class="text-danger">*</span></label>
-                    <select name="assignees[]" class="form-select @error('assignees') is-invalid @enderror" multiple required style="height: 140px;">
-                        @foreach($faculties as $faculty)
-                            <option value="{{ $faculty->id }}" {{ in_array($faculty->id, old('assignees', $selectedAssignees)) ? 'selected' : '' }}>
-                                {{ $faculty->name }} ({{ $faculty->designation }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('assignees') <div class="invalid-feedback">{{ $message }}</div> @error
+                    @include('components.faculty-selector', ['faculties' => $faculties, 'selected' => $selectedAssignees])
+                    @error('assignees') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
 

@@ -56,6 +56,18 @@
         </div>
     </form>
 
+    <div class="d-flex align-items-center my-4">
+        <hr class="flex-grow-1 text-muted">
+        <span class="mx-3 text-muted small fw-semibold">OR</span>
+        <hr class="flex-grow-1 text-muted">
+    </div>
+
+    <div class="d-grid mb-2">
+        <a href="{{ route('google.login') }}" class="btn btn-outline-secondary w-100 fw-semibold py-2 shadow-sm d-flex justify-content-center align-items-center">
+            <i class="bi bi-google text-danger me-2"></i> Continue with Google
+        </a>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const emailInput = document.getElementById('email');

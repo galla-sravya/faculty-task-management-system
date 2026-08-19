@@ -60,12 +60,7 @@
 
                     <div class="mb-4">
                         <label class="form-label fw-semibold text-dark">Assign To Faculty <span class="text-danger">*</span></label>
-                        <select name="assignees[]" class="form-select border" style="border-color: var(--border) !important;" multiple size="5" required>
-                            @foreach($faculties as $faculty)
-                                <option value="{{ $faculty->id }}">{{ $faculty->name }} ({{ $faculty->designation }})</option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i>Hold CTRL/CMD to select multiple faculty members.</small>
+                        @include('components.faculty-selector', ['faculties' => $faculties])
                         @error('assignees')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror

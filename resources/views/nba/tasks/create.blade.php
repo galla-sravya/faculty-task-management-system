@@ -60,14 +60,7 @@
 
                 <div class="col-12">
                     <label class="form-label fw-semibold text-navy">Assign To Faculty <span class="text-danger">*</span></label>
-                    <select name="assignees[]" class="form-select @error('assignees') is-invalid @enderror" multiple required style="height: 140px;">
-                        @foreach($faculties as $faculty)
-                            <option value="{{ $faculty->id }}" {{ in_array($faculty->id, old('assignees', [])) ? 'selected' : '' }}>
-                                {{ $faculty->name }} ({{ $faculty->designation }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <div class="form-text text-muted">Hold Ctrl / Cmd to select multiple faculty members.</div>
+                    @include('components.faculty-selector', ['faculties' => $faculties])
                     @error('assignees') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
@@ -122,10 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const assigneesSelect = form.querySelector('select[name="assignees[]"]');
+        const assigneeInputs = form.querySelectorAll('input[name="assignees[]"]:checked');
         const deadlineInput = form.querySelector('input[name="deadline"]');
         
-        const assignees = Array.from(assigneesSelect.selectedOptions).map(opt => opt.value);
+        const assignees = Array.from(assigneeInputs).map(opt => opt.value);
         const deadline = deadlineInput.value;
 
         if (assignees.length === 0 || !deadline) {
