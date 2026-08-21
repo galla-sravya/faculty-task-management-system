@@ -173,13 +173,15 @@
         </div>
     </div>
 
-    <!-- Progress Update Card -->
-    <div class="col-lg-6 mb-4">
-        <div class="card bg-white shadow-sm border-0 h-100" style="border-radius: var(--radius, 8px);">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="m-0 fw-bold" style="color: var(--navy);">
-                    <i class="bi bi-pencil-square me-2" style="color: var(--gold);"></i>My Progress
-                </h6>
+    <!-- Progress / Assignee Status Area -->
+    @if($pivot)
+        <!-- Progress Update Card -->
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-white shadow-sm border-0 h-100" style="border-radius: var(--radius, 8px);">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="m-0 fw-bold" style="color: var(--navy);">
+                        <i class="bi bi-pencil-square me-2" style="color: var(--gold);"></i>My Progress
+                    </h6>
             </div>
             <div class="card-body p-4">
                 <form action="{{ route('faculty.tasks.updateProgress', $task) }}" method="POST" enctype="multipart/form-data">
@@ -232,39 +234,117 @@
 
                     <!-- Supporting Document Upload / Replacement -->
                     <div class="mb-4">
+                        @php
+                            $myDocs = isset($groupedDocuments) && isset($groupedDocuments[auth()->id()]) ? $groupedDocuments[auth()->id()] : collect();
+                        @endphp
+                        
                         <label class="form-label fw-semibold text-dark d-flex justify-content-between align-items-center mb-1">
-                            <span>Supporting Document</span>
-                            @if(isset($myLatestDoc) && $myLatestDoc)
-                                <span class="badge bg-light text-primary border fw-normal" style="font-size:0.72rem;" title="{{ $myLatestDoc->file_name }}">
-                                    <i class="bi bi-file-earmark-check me-1"></i>Current: {{ Str::limit($myLatestDoc->file_name, 20) }} (v{{ $myLatestDoc->version }})
-                                </span>
-                            @endif
+                            <span>Supporting Document(s)</span>
                         </label>
 
-                        <div class="input-group">
-                            <input type="file" name="document" class="form-control border" id="supportingDocInput"
+                        <div class="mb-2">
+                            <input type="file" name="document[]" multiple class="form-control border" id="supportingDocInput"
                                    style="border-color: var(--border) !important; font-size: 0.85rem;"
                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
-                            @if(isset($myLatestDoc) && $myLatestDoc)
-                                <span class="input-group-text bg-light text-secondary small border" style="border-color: var(--border) !important; font-size: 0.78rem;">
-                                    Replace v{{ $myLatestDoc->version }}
-                                </span>
-                            @endif
                         </div>
-                        <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">
-                            <i class="bi bi-info-circle me-1"></i>{{ isset($myLatestDoc) && $myLatestDoc ? 'Uploading a new file will update the document to v' . ($myLatestDoc->version + 1) . '.' : 'Optional: Upload a supporting document (PDF, DOCX, XLSX, PNG, Max 10MB).' }}
+                        
+                        @if($myDocs->count() > 0)
+                            <div class="input-group mb-1">
+                                <span class="input-group-text bg-light text-secondary border" style="border-color: var(--border) !important; font-size: 0.85rem;">Action</span>
+                                <select name="upload_action" id="uploadActionSelect" class="form-select border" style="border-color: var(--border) !important; font-size: 0.85rem;">
+                                    <option value="new">Upload as New File(s)</option>
+                                    <optgroup label="Replace Existing (First file only)">
+                                        @foreach($myDocs as $doc)
+                                            <option value="replace_{{ $doc->id }}">Replace: {{ Str::limit($doc->file_name, 30) }} (v{{ $doc->version }})</option>
+                                        @endforeach
+                                    </optgroup>
+                                </select>
+                            </div>
+                        @else
+                            <input type="hidden" name="upload_action" value="new">
+                        @endif
+
+                        <small class="text-muted mt-1 d-block" id="uploadHelperText" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>Select one or more files (PDF, DOCX, XLSX, PNG, Max 10MB per file).
                         </small>
                     </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn text-white fw-semibold py-2 shadow-sm" style="background-color: var(--navy);">
-                            <i class="bi bi-check2-circle me-1"></i> Update Status
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const actionSelect = document.getElementById('uploadActionSelect');
+                            const helperText = document.getElementById('uploadHelperText');
+                            const fileInput = document.getElementById('supportingDocInput');
+
+                            if (actionSelect) {
+                                actionSelect.addEventListener('change', function() {
+                                    if (this.value.startsWith('replace_')) {
+                                        helperText.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i><strong>Note:</strong> Only the FIRST selected file will be used to replace the document. Other selected files will be uploaded as new.';
+                                    } else {
+                                        helperText.innerHTML = '<i class="bi bi-info-circle me-1"></i>All selected files will be uploaded as new documents.';
+                                    }
+                                });
+                            }
+                        });
+                    </script>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn text-white fw-bold py-2 shadow-sm" style="background-color: var(--navy);">
+                            <i class="bi bi-cloud-upload me-2"></i>Save Progress
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    @else
+    <!-- Overall Progress and Assigned Faculty -->
+    <div class="col-lg-6 mb-4">
+        <div class="card bg-white shadow-sm border-0 h-100 mb-3" style="border-radius: var(--radius, 8px);">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="m-0 fw-bold" style="color: var(--navy);">
+                    <i class="bi bi-bar-chart-steps me-2" style="color: var(--gold);"></i>Overall Progress
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-semibold mb-0 text-dark" style="font-size: 0.9rem;">Task Progress</h6>
+                    <span class="fw-bold" style="color: var(--navy);">{{ $task->overall_progress }}%</span>
+                </div>
+                <div class="progress" style="height: 12px; background-color: #e9ecef; border-radius: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ $task->overall_progress }}%; background-color: {{ $task->overall_progress >= 100 ? '#2e7d32' : ($task->overall_progress >= 50 ? 'var(--navy)' : 'var(--gold)') }}; border-radius: 6px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-white shadow-sm border-0 h-100" style="border-radius: var(--radius, 8px);">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="m-0 fw-bold" style="color: var(--navy);">
+                    <i class="bi bi-people me-2" style="color: var(--gold);"></i>Assigned Faculty
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    @forelse($task->assignees as $assignee)
+                        <li class="list-group-item border-bottom px-4 py-3" style="border-color: var(--border) !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="fw-semibold text-dark">{{ $assignee->name }}</div>
+                                </div>
+                                <div class="fw-bold" style="color: var(--navy);">{{ $assignee->pivot->progress_percentage }}%</div>
+                            </div>
+                            <div class="progress" style="height: 6px; background-color: #e9ecef; border-radius: 3px;">
+                                <div class="progress-bar" style="width: {{ $assignee->pivot->progress_percentage }}%; background-color: {{ $assignee->pivot->progress_percentage >= 100 ? '#2e7d32' : 'var(--navy)' }};"></div>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="list-group-item text-muted text-center py-4">No assignees found.</li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+    @endif
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- SHARED WORKSPACE DOCUMENTS MANAGEMENT SECTION                  -->
 <!-- ═══════════════════════════════════════════════════════════════ -->

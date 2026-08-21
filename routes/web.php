@@ -185,6 +185,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Faculty\DashboardController::class, 'index'])->name('dashboard');
         
         Route::get('tasks', [App\Http\Controllers\Faculty\TaskController::class, 'index'])->name('tasks.index');
+        Route::get('tasks/create', [App\Http\Controllers\Faculty\TaskController::class, 'create'])->name('tasks.create');
+        Route::post('tasks', [App\Http\Controllers\Faculty\TaskController::class, 'store'])->name('tasks.store');
         Route::get('tasks/{task}', [App\Http\Controllers\Faculty\TaskController::class, 'show'])->name('tasks.show')->withTrashed();
         Route::post('tasks/{task}/progress', [App\Http\Controllers\Faculty\TaskController::class, 'updateProgress'])->name('tasks.updateProgress')->withTrashed();
 

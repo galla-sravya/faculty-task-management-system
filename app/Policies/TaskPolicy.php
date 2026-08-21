@@ -26,12 +26,16 @@ class TaskPolicy
             return $task->created_by === $user->id || $task->assignees()->where('user_id', $user->id)->exists();
         }
         
+        if ($task->created_by === $user->id) {
+            return true;
+        }
+
         return $task->assignees()->where('user_id', $user->id)->exists();
     }
 
     public function create(User $user): bool
     {
-        return $user->isHod() || $user->isNbaCoordinator();
+        return $user->isHod() || $user->isNbaCoordinator() || $user->isFaculty();
     }
 
     public function update(User $user, Task $task): bool

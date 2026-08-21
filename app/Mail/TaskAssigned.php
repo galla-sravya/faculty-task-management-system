@@ -7,7 +7,9 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Task;
 
-class TaskAssigned extends Mailable
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class TaskAssigned extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

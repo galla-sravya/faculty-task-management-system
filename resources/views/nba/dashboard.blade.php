@@ -136,7 +136,7 @@
                             </thead>
                             <tbody>
                                 @foreach($recentTasks as $task)
-                                <tr>
+                                <tr onclick="window.location='{{ route('nba.tasks.show', $task) }}'" style="cursor: pointer;">
                                     <td class="ps-3">
                                         <a href="{{ route('nba.tasks.show', $task) }}" class="fw-semibold text-navy text-decoration-none">
                                             {{ Str::limit($task->title, 35) }}
@@ -167,7 +167,7 @@
                                         <x-task-deadline-badge :task="$task" />
                                     </td>
                                     <td class="pe-3 text-end">
-                                        <a href="{{ route('nba.tasks.show', $task) }}" class="btn btn-sm btn-outline-navy py-1 px-2" style="font-size:0.78rem;">View</a>
+                                        <a href="{{ route('nba.tasks.show', $task) }}" class="btn btn-sm btn-outline-navy py-1 px-2" style="font-size:0.78rem;" onclick="event.stopPropagation();">View</a>
                                     </td>
                                 </tr>
                                 @endforeach

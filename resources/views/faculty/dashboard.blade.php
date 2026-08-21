@@ -13,6 +13,9 @@
         <p class="text-muted small mb-0">Overview of your assigned tasks, personal progress, and department meetings</p>
     </div>
     <div class="btn-toolbar gap-2 mb-2 mb-md-0">
+        <a href="{{ route('faculty.tasks.create') }}" class="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-1" style="background-color: var(--gold); color: var(--navy) !important;">
+            <i class="bi bi-plus-lg"></i> Create Task
+        </a>
         <a href="{{ route('faculty.tasks.index') }}" class="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-1" style="background-color: var(--navy);">
             <i class="bi bi-list-task"></i> View My Tasks
         </a>

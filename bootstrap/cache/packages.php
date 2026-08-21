@@ -6,6 +6,17 @@
       0 => 'Laravel\\Breeze\\BreezeServiceProvider',
     ),
   ),
+  'laravel/socialite' => 
+  array (
+    'aliases' => 
+    array (
+      'Socialite' => 'Laravel\\Socialite\\Facades\\Socialite',
+    ),
+    'providers' => 
+    array (
+      0 => 'Laravel\\Socialite\\SocialiteServiceProvider',
+    ),
+  ),
   'laravel/tinker' => 
   array (
     'providers' => 
