@@ -674,7 +674,7 @@ class NotificationService
                 'meeting_scheduled',
                 $meeting->id,
                 Meeting::class,
-                'New meeting scheduled by HOD: ' . $meeting->title . ' on ' . $meeting->meeting_date->format('M d, Y H:i')
+                'New meeting scheduled by HOD: ' . $meeting->title . ' on ' . $meeting->scheduled_at->format('M d, Y H:i')
             );
         }
     }

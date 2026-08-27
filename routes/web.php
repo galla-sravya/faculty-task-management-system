@@ -4,7 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+       return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
 
 // Test route to preview the email in the browser

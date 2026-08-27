@@ -32,10 +32,23 @@ class User extends Authenticatable
 
     public function getProfilePhotoUrlAttribute(): string
     {
-        if ($this->profile_photo_path && file_exists(public_path('storage/' . $this->profile_photo_path))) {
-            return asset('storage/' . $this->profile_photo_path);
+      if ($this->profile_photo_path) {
+          if (filter_var($this->profile_photo_path, FILTER_VALIDATE_URL)) {
+              return $this->profile_photo_path;
+            }
+
+          if (file_exists(storage_path('app/public/' . $this->profile_photo_path)) ||
+              file_exists(public_path('storage/' . $this->profile_photo_path))) {
+              return asset('storage/' . ltrim($this->profile_photo_path, '/'));
+            }
+
+          if (file_exists(public_path($this->profile_photo_path))) {
+              return asset(ltrim($this->profile_photo_path, '/'));
+            }
         }
-        return asset('storage/faculty/default-avatar.png');
+     
+      $name = urlencode($this->name ?? 'User');
+      return "https://ui-avatars.com/api/?name={$name}&color=FFFFFF&background=1B365D&size=128&font-size=0.4&bold=true";
     }
 
     protected $hidden = [

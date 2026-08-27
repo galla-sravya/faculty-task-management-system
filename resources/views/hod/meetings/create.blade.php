@@ -62,13 +62,8 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-semibold text-dark">Invite Faculty <span class="text-danger">*</span></label>
-                        <select name="attendees[]" class="form-select border" style="border-color: var(--border) !important;" multiple size="5" required>
-                            @foreach($faculties as $faculty)
-                                <option value="{{ $faculty->id }}">{{ $faculty->name }}</option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i>Hold CTRL/CMD to select multiple faculty members.</small>
+                        <label class="form-label fw-semibold text-dark mb-2">Invite Faculty <span class="text-danger">*</span></label>
+                        @include('components.faculty-selector', ['faculties' => $faculties, 'inputName' => 'attendees[]'])
                         @error('attendees')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror

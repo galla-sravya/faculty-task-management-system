@@ -1,4 +1,7 @@
-@props(['faculties', 'selected' => []])
+@php
+    $selected = $selected ?? [];
+    $inputName = $inputName ?? 'assignees[]';
+@endphp
 
 <div class="faculty-selector-container">
     <div class="mb-2">
@@ -14,9 +17,12 @@
         </div>
 
         <div class="faculty-list">
+            @php
+                $oldKey = str_replace('[]', '', $inputName);
+            @endphp
             @foreach($faculties as $faculty)
                 <div class="form-check faculty-item mb-2">
-                    <input class="form-check-input faculty-checkbox" type="checkbox" name="assignees[]" value="{{ $faculty->id }}" id="faculty_{{ $faculty->id }}" {{ in_array($faculty->id, old('assignees', $selected)) ? 'checked' : '' }}>
+                    <input class="form-check-input faculty-checkbox" type="checkbox" name="{{ $inputName }}" value="{{ $faculty->id }}" id="faculty_{{ $faculty->id }}" {{ in_array($faculty->id, old($oldKey, $selected)) ? 'checked' : '' }}>
                     <label class="form-check-label w-100 text-secondary" for="faculty_{{ $faculty->id }}" style="cursor: pointer;">
                         {{ $faculty->name }} <span class="small text-muted">({{ $faculty->designation }})</span>
                     </label>
@@ -103,3 +109,4 @@
         });
     });
 </script>
+
