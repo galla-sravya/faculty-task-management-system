@@ -22,6 +22,14 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
+        if ($user->isNbaCoordinator()) {
+            return $task->owner_role === 'nba_coordinator' && $user->department_id === $task->department_id;
+        }
+        
+        if ($user->isCoordinator()) {
+            return $task->owner_role === $user->coordinatorType->slug && $user->department_id === $task->department_id;
+        }
+
         if ($task->created_by === $user->id) {
             return true;
         }
@@ -31,7 +39,7 @@ class TaskPolicy
 
     public function create(User $user): bool
     {
-        return true; // HOD, coordinators, and faculty can create tasks
+        return $user->isHod() || $user->isNbaCoordinator() || $user->isFaculty();
     }
 
     public function update(User $user, Task $task): bool
@@ -40,7 +48,11 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        return $task->created_by === $user->id;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function delete(User $user, Task $task): bool
@@ -49,7 +61,11 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        return $task->created_by === $user->id;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function restore(User $user, Task $task): bool
@@ -58,7 +74,11 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        return $task->created_by === $user->id;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function forceDelete(User $user, Task $task): bool
@@ -71,12 +91,16 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        return $task->created_by === $user->id;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
     
     public function updateProgress(User $user, Task $task): bool
     {
-        return $task->assignees()->where('user_id', $user->id)->exists() || $task->created_by === $user->id;
+        return $task->assignees()->where('user_id', $user->id)->exists();
     }
 
     public function addCollaborator(User $user, Task $task): bool
@@ -85,8 +109,8 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        if ($task->created_by === $user->id) {
-            return true;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
         }
 
         return $task->assignees()->where('user_id', $user->id)->exists();
@@ -94,15 +118,23 @@ class TaskPolicy
 
     public function reassign(User $user, Task $task): bool
     {
+        \Illuminate\Support\Facades\Log::info("TaskPolicy@reassign called for User {$user->id} ({$user->role}) on Task {$task->id}");
+        
         if ($user->isHod()) {
-            return $user->department_id === $task->department_id;
+            $result = $user->department_id === $task->department_id;
+            \Illuminate\Support\Facades\Log::info("HOD check: {$user->department_id} === {$task->department_id} -> " . ($result ? 'true' : 'false'));
+            return $result;
         }
 
-        if ($task->created_by === $user->id) {
-            return true;
+        if ($user->isNbaCoordinator()) {
+            $result = $task->created_by === $user->id;
+            \Illuminate\Support\Facades\Log::info("NBA check: {$task->created_by} === {$user->id} -> " . ($result ? 'true' : 'false'));
+            return $result;
         }
 
-        return $task->assignees()->where('user_id', $user->id)->exists();
+        $result = $task->assignees()->where('user_id', $user->id)->exists();
+        \Illuminate\Support\Facades\Log::info("Faculty check: assignee exists -> " . ($result ? 'true' : 'false'));
+        return $result;
     }
 
     public function removeCollaborator(User $user, Task $task): bool
@@ -111,7 +143,11 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        return $task->created_by === $user->id;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function uploadDocument(User $user, Task $task): bool
@@ -125,7 +161,11 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        return $task->created_by === $user->id;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
+        }
+
+        return false;
     }
 
     public function manageChecklist(User $user, Task $task): bool
@@ -134,8 +174,8 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        if ($task->created_by === $user->id) {
-            return true;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id || $task->assignees()->where('user_id', $user->id)->exists();
         }
 
         return $task->assignees()->where('user_id', $user->id)->exists();
@@ -147,8 +187,8 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        if ($task->created_by === $user->id) {
-            return true;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
         }
 
         // Faculty can edit items they created
@@ -161,8 +201,8 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        if ($task->created_by === $user->id) {
-            return true;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id || $task->assignees()->where('user_id', $user->id)->exists();
         }
 
         // Faculty assigned to task can update status if assigned to them, assigned to all, or created by them
@@ -179,8 +219,8 @@ class TaskPolicy
             return $user->department_id === $task->department_id;
         }
 
-        if ($task->created_by === $user->id) {
-            return true;
+        if ($user->isNbaCoordinator()) {
+            return $task->created_by === $user->id;
         }
 
         // Faculty CANNOT delete HOD-created requirements

@@ -24,11 +24,15 @@ class TaskDocumentController extends Controller
      */
     public function store(Request $request, Task $task)
     {
+        // THIS IS THE TEMPORARY DEBUG LINE:
+        dd("DEBUG SCREEN:", "Request Data:", $request->all(), "Files:", $request->file('documents'), "Session:", session()->all());
+        
         $this->authorize('view', $task);
 
         $request->validate([
             'documents'   => 'required|array|min:1',
-            'documents.*' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,png,jpg,jpeg',
+            // TEMPORARILY REMOVED MIMES AND MAX SIZE TO TEST FILEINFO:
+            'documents.*' => 'required|file',
             'remarks'     => 'nullable|string|max:500',
         ]);
 
