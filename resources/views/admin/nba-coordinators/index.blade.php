@@ -27,6 +27,116 @@
             </div>
         @endif
 
+        {{-- Credentials Modal: auto-shown after account creation or password reset --}}
+        @if(session('created_credentials'))
+            <div class="modal fade" id="credentialsModal" tabindex="-1" aria-labelledby="credentialsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-bottom-0 bg-gradient" style="background: linear-gradient(135deg, #0dcaf0, #0a58ca);">
+                            <h5 class="modal-title fw-bold text-white" id="credentialsModalLabel">
+                                <i class="bi bi-shield-lock-fill me-2"></i>Account Credentials
+                            </h5>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="alert alert-warning border-0 d-flex align-items-start gap-2 mb-4" style="background: #fff8e1;">
+                                <i class="bi bi-exclamation-triangle-fill text-warning mt-1" style="font-size: 1.1rem;"></i>
+                                <div>
+                                    <strong>Important:</strong> Please copy these credentials now. The password <strong>cannot</strong> be retrieved later as it is stored securely (hashed).
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Name</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light fw-medium" value="{{ session('created_credentials.name') }}" readonly id="credName">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('credName')" title="Copy Name">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Email</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light fw-medium" value="{{ session('created_credentials.email') }}" readonly id="credEmail">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('credEmail')" title="Copy Email">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Password</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light fw-bold text-danger" value="{{ session('created_credentials.password') }}" readonly id="credPassword" style="letter-spacing: 1px;">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('credPassword')" title="Copy Password">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button class="btn btn-outline-info rounded-pill fw-semibold" type="button" onclick="copyAllCredentials()">
+                                    <i class="bi bi-clipboard-check me-1"></i> Copy All Credentials
+                                </button>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top bg-light">
+                            <button type="button" class="btn btn-info text-white rounded-pill px-4" data-bs-dismiss="modal">
+                                <i class="bi bi-check-lg me-1"></i> I've Saved the Credentials
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var credModal = new bootstrap.Modal(document.getElementById('credentialsModal'));
+                    credModal.show();
+                });
+
+                function copyToClipboard(elementId) {
+                    var input = document.getElementById(elementId);
+                    navigator.clipboard.writeText(input.value).then(function () {
+                        var btn = input.nextElementSibling;
+                        var originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<i class="bi bi-check-lg text-success"></i>';
+                        btn.classList.add('btn-outline-success');
+                        btn.classList.remove('btn-outline-secondary');
+                        setTimeout(function () {
+                            btn.innerHTML = originalHtml;
+                            btn.classList.remove('btn-outline-success');
+                            btn.classList.add('btn-outline-secondary');
+                        }, 1500);
+                    });
+                }
+
+                function copyAllCredentials() {
+                    var name = document.getElementById('credName').value;
+                    var email = document.getElementById('credEmail').value;
+                    var password = document.getElementById('credPassword').value;
+                    var text = 'NBA Coordinator Credentials\n' +
+                               '----------------------------\n' +
+                               'Name: ' + name + '\n' +
+                               'Email: ' + email + '\n' +
+                               'Password: ' + password;
+                    navigator.clipboard.writeText(text).then(function () {
+                        var btn = event.target.closest('button');
+                        var originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Copied!';
+                        btn.classList.add('btn-success');
+                        btn.classList.remove('btn-outline-info');
+                        setTimeout(function () {
+                            btn.innerHTML = originalHtml;
+                            btn.classList.remove('btn-success');
+                            btn.classList.add('btn-outline-info');
+                        }, 2000);
+                    });
+                }
+            </script>
+        @endif
+
         <!-- Accounts Table Card -->
         <div class="card border-0 shadow-sm rounded-3">
             <div class="card-header bg-white py-3 border-0 d-flex align-items-center justify-content-between">
@@ -34,7 +144,7 @@
                     <i class="bi bi-person-workspace me-2 text-info"></i>NBA Coordinator Accounts List ({{ $nbaCoordinators->count() }})
                 </h6>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive" style="overflow: visible;">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light small text-uppercase text-muted">
                         <tr>
@@ -77,51 +187,49 @@
                                     {{ $nba->created_at ? $nba->created_at->format('M d, Y') : '-' }}
                                 </td>
                                 <td class="text-end">
-                                    <div class="position-relative d-inline-block">
-                                        <button class="btn btn-sm btn-light border admin-actions-btn" type="button" data-actions-id="{{ $nba->id }}">
-                                            Actions <i class="bi bi-chevron-down ms-1 small"></i>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="true">
+                                            Actions
                                         </button>
-                                        <div class="d-none" id="adminActionsTemplate{{ $nba->id }}">
-                                            <ul class="list-unstyled mb-0 py-1">
-                                                <li>
-                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#viewNbaModal{{ $nba->id }}">
-                                                        <i class="bi bi-eye text-info"></i> View Details
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border rounded-3">
+                                            <li>
+                                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" data-bs-toggle="modal" data-bs-target="#viewNbaModal{{ $nba->id }}">
+                                                    <i class="bi bi-eye text-info"></i> View Details
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" data-bs-toggle="modal" data-bs-target="#editNbaModal{{ $nba->id }}">
+                                                    <i class="bi bi-pencil text-primary"></i> Edit Account
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $nba->id }}">
+                                                    <i class="bi bi-key text-warning"></i> Reset Password
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <form action="{{ route('admin.nba-coordinators.toggleStatus', $nba) }}" method="POST" class="m-0 p-0">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3">
+                                                        @if(($nba->status ?? 'active') === 'active')
+                                                            <i class="bi bi-person-x text-secondary"></i> Deactivate
+                                                        @else
+                                                            <i class="bi bi-person-check text-success"></i> Activate
+                                                        @endif
                                                     </button>
-                                                </li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#editNbaModal{{ $nba->id }}">
-                                                        <i class="bi bi-pencil text-primary"></i> Edit Account
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <form action="{{ route('admin.nba-coordinators.destroy', $nba) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this NBA Coordinator account?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 py-2 px-3">
+                                                        <i class="bi bi-trash"></i> Delete Account
                                                     </button>
-                                                </li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $nba->id }}">
-                                                        <i class="bi bi-key text-warning"></i> Reset Password
-                                                    </button>
-                                                </li>
-                                                <li>
-                                                    <form action="{{ route('admin.nba-coordinators.toggleStatus', $nba) }}" method="POST" class="m-0 p-0">
-                                                        @csrf
-                                                        <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start">
-                                                            @if(($nba->status ?? 'active') === 'active')
-                                                                <i class="bi bi-person-x text-secondary"></i> Deactivate
-                                                            @else
-                                                                <i class="bi bi-person-check text-success"></i> Activate
-                                                            @endif
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                                <li><hr class="dropdown-divider my-1"></li>
-                                                <li>
-                                                    <form action="{{ route('admin.nba-coordinators.destroy', $nba) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this NBA Coordinator account?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 py-2 px-3 text-decoration-none border-0 bg-transparent w-100 text-start">
-                                                            <i class="bi bi-trash"></i> Delete Account
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                                </form>
+                                            </li>
+                                        </ul>
                                     </div>
 
                                     <!-- View Details Modal -->
@@ -144,6 +252,24 @@
                                                         <li class="list-group-item d-flex justify-content-between px-0">
                                                             <span class="text-muted">Email</span>
                                                             <span class="fw-medium text-dark">{{ $nba->email }}</span>
+                                                        </li>
+                                                        <li class="list-group-item px-0">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">Password</span>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <span class="fw-medium text-danger" id="nbaPass{{ $nba->id }}" style="letter-spacing: 0.5px;">
+                                                                        {{ $nba->plain_password ?? '••••••••' }}
+                                                                    </span>
+                                                                    @if($nba->plain_password)
+                                                                        <button type="button" class="btn btn-sm btn-outline-secondary border-0 p-0 px-1" onclick="copyCredential(this, '{{ $nba->plain_password }}')" title="Copy Password">
+                                                                            <i class="bi bi-clipboard small"></i>
+                                                                        </button>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            @if(!$nba->plain_password)
+                                                                <small class="text-muted fst-italic d-block mt-1" style="font-size: 0.7rem;">Password was set before credential tracking was enabled. Reset to view.</small>
+                                                            @endif
                                                         </li>
                                                         <li class="list-group-item d-flex justify-content-between px-0">
                                                             <span class="text-muted">Department</span>
@@ -304,3 +430,4 @@
         </div>
     </div>
 </x-app-layout>
+ss

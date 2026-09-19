@@ -33,16 +33,24 @@ class NbaCoordinatorController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password,
             'role' => 'nba_coordinator',
             'department_id' => $request->department_id,
             'status' => $request->status,
         ]);
 
-        return redirect()->route('admin.nba-coordinators.index')->with('success', 'NBA Coordinator account created successfully.');
+        return redirect()->route('admin.nba-coordinators.index')->with([
+            'success' => 'NBA Coordinator account created successfully.',
+            'created_credentials' => [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password,
+            ],
+        ]);
     }
 
     public function update(Request $request, User $nbaCoordinator)
@@ -67,7 +75,10 @@ class NbaCoordinatorController extends Controller
 
         if ($request->filled('password')) {
             $request->validate(['password' => 'string|min:8']);
-            $nbaCoordinator->update(['password' => Hash::make($request->password)]);
+            $nbaCoordinator->update([
+                'password' => Hash::make($request->password),
+                'plain_password' => $request->password,
+            ]);
         }
 
         return redirect()->route('admin.nba-coordinators.index')->with('success', 'NBA Coordinator account updated successfully.');
@@ -98,9 +109,17 @@ class NbaCoordinatorController extends Controller
 
         $nbaCoordinator->update([
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password,
         ]);
 
-        return redirect()->route('admin.nba-coordinators.index')->with('success', "Password reset successfully for {$nbaCoordinator->name}.");
+        return redirect()->route('admin.nba-coordinators.index')->with([
+            'success' => "Password reset successfully for {$nbaCoordinator->name}.",
+            'created_credentials' => [
+                'name' => $nbaCoordinator->name,
+                'email' => $nbaCoordinator->email,
+                'password' => $request->password,
+            ],
+        ]);
     }
 
     public function destroy(User $nbaCoordinator)

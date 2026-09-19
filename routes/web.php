@@ -48,7 +48,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tasks/{task}/view', function (App\Models\Task $task) {
         $user = auth()->user();
         if ($user->isAdmin()) {
-            // Admin doesn't have a task view yet, maybe just dashboard
             return redirect()->route('admin.dashboard');
         }
         if ($user->isHod()) {
@@ -118,7 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('tasks/{task}/documents/{document}/download', [App\Http\Controllers\Coordinator\TaskDocumentController::class, 'download'])->name('tasks.documents.download')->withTrashed();
         Route::get('tasks/{task}/documents/{document}/versions', [App\Http\Controllers\Coordinator\TaskDocumentController::class, 'versions'])->name('tasks.documents.versions')->withTrashed();
 
-        // Coordinator Faculty Management (view-only — no create/store)
+        // Coordinator Faculty Management
         Route::get('faculty', [App\Http\Controllers\Coordinator\FacultyController::class, 'index'])->name('faculty.index');
         Route::get('faculty/{faculty}/performance', [App\Http\Controllers\Coordinator\FacultyController::class, 'performance'])->name('faculty.performance');
     });
@@ -146,7 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('tasks/{task}/documents/{document}/download', [App\Http\Controllers\NBA\TaskDocumentController::class, 'download'])->name('tasks.documents.download')->withTrashed();
         Route::get('tasks/{task}/documents/{document}/versions', [App\Http\Controllers\NBA\TaskDocumentController::class, 'versions'])->name('tasks.documents.versions')->withTrashed();
 
-        // NBA Faculty Management (view-only — no create/store)
+        // NBA Faculty Management
         Route::get('faculty', [App\Http\Controllers\NBA\FacultyController::class, 'index'])->name('faculty.index');
         Route::get('faculty/{faculty}/performance', [App\Http\Controllers\NBA\FacultyController::class, 'performance'])->name('faculty.performance');
     });
@@ -184,11 +183,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:faculty')->prefix('faculty')->name('faculty.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Faculty\DashboardController::class, 'index'])->name('dashboard');
         
-        Route::get('tasks', [App\Http\Controllers\Faculty\TaskController::class, 'index'])->name('tasks.index');
-        Route::get('tasks/create', [App\Http\Controllers\Faculty\TaskController::class, 'create'])->name('tasks.create');
-        Route::post('tasks', [App\Http\Controllers\Faculty\TaskController::class, 'store'])->name('tasks.store');
-        Route::get('tasks/{task}', [App\Http\Controllers\Faculty\TaskController::class, 'show'])->name('tasks.show')->withTrashed();
+        // Archived tasks & restore
+        Route::get('tasks/archived', [App\Http\Controllers\Faculty\TaskController::class, 'archived'])->name('tasks.archived');
+        Route::post('tasks/{task}/restore', [App\Http\Controllers\Faculty\TaskController::class, 'restore'])->name('tasks.restore');
+
         Route::post('tasks/{task}/progress', [App\Http\Controllers\Faculty\TaskController::class, 'updateProgress'])->name('tasks.updateProgress')->withTrashed();
+        Route::resource('tasks', App\Http\Controllers\Faculty\TaskController::class)->withTrashed(['show']);
 
         Route::get('meetings', [App\Http\Controllers\Faculty\MeetingController::class, 'index'])->name('meetings.index');
         Route::get('meetings/{meeting}', [App\Http\Controllers\Faculty\MeetingController::class, 'show'])->name('meetings.show');
@@ -202,6 +202,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('tasks/{task}/documents/{document}/download', [App\Http\Controllers\Faculty\TaskDocumentController::class, 'download'])->name('tasks.documents.download')->withTrashed();
         Route::post('tasks/{task}/documents/submit', [App\Http\Controllers\Faculty\TaskDocumentController::class, 'submit'])->name('tasks.documents.submit')->withTrashed();
         Route::get('tasks/{task}/documents/{document}/versions', [App\Http\Controllers\Faculty\TaskDocumentController::class, 'versions'])->name('tasks.documents.versions')->withTrashed();
+        Route::post('tasks/{task}/documents/{document}/review', [App\Http\Controllers\Faculty\TaskDocumentController::class, 'review'])->name('tasks.documents.review')->withTrashed();
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

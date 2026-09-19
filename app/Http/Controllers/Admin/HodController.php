@@ -37,6 +37,7 @@ class HodController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password,
             'role' => 'hod',
             'department_id' => $request->department_id,
             'status' => $request->status,
@@ -73,7 +74,10 @@ class HodController extends Controller
 
         if ($request->filled('password')) {
             $request->validate(['password' => 'string|min:8']);
-            $hod->update(['password' => Hash::make($request->password)]);
+            $hod->update([
+                'password' => Hash::make($request->password),
+                'plain_password' => $request->password,
+            ]);
         }
 
         // Link department to HOD
@@ -110,6 +114,7 @@ class HodController extends Controller
 
         $hod->update([
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password,
         ]);
 
         return redirect()->route('admin.hods.index')->with('success', "Password reset successfully for {$hod->name}.");

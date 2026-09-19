@@ -179,4 +179,30 @@ class TaskDocumentController extends Controller
             ]),
         ]);
     }
+
+    /**
+     * Review a document (approve / request changes / reject).
+     */
+    public function review(Request $request, Task $task, TaskDocument $document)
+    {
+        $this->authorize('reviewDocument', $task);
+
+        $validated = $request->validate([
+            'review_status'   => 'required|in:approved,changes_requested,rejected',
+            'review_comments' => 'nullable|string|max:1000',
+        ]);
+
+        $document->update([
+            'review_status'   => $validated['review_status'],
+            'review_comments' => $validated['review_comments'] ?? null,
+            'reviewed_by'     => auth()->id(),
+            'reviewed_at'     => now(),
+        ]);
+
+        $this->notificationService->notifyDocumentReviewed($task, $document, $validated['review_status'], $validated['review_comments'] ?? null);
+        $this->notificationService->updateAutomaticTaskProgress($task, 'document review');
+
+        return redirect()->route('faculty.tasks.show', $task)
+            ->with('success', 'Document marked as ' . str_replace('_', ' ', $validated['review_status']) . '.');
+    }
 }

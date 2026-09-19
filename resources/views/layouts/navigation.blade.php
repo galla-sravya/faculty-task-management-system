@@ -194,7 +194,12 @@
         <!-- User Profile -->
         <div class="dropdown">
             <a class="d-flex align-items-center text-decoration-none dropdown-toggle topbar-user" href="#" role="button" id="topbarUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="rounded-circle shadow-sm object-fit-cover" style="width:32px;height:32px;border:2px solid var(--navy);">
+                <img src="{{ auth()->user()->profile_photo_url }}" 
+                onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&color=FFFFFF&background=1B365D&size=128&font-size=0.4&bold=true';" 
+                alt="{{ auth()->user()->name }}" 
+                class="rounded-circle shadow-sm object-fit-cover" 
+                style="width:32px;height:32px;border:2px solid var(--navy);">
+
                 <span class="topbar-user-name">{{ auth()->user()->name }}</span>
                 <span class="badge bg-light border ms-1" style="color:var(--navy);font-size:0.65rem;">{{ str_replace('_', ' ', ucfirst(auth()->user()->role)) }}</span>
             </a>

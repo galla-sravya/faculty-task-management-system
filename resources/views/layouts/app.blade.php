@@ -256,6 +256,18 @@
         }
     </style>
     <script>
+        function copyCredential(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'bi bi-check2 text-success';
+                setTimeout(() => {
+                    icon.className = originalClass;
+                }, 2000);
+            });
+        }
+    </script>
+    <script>
     document.addEventListener('DOMContentLoaded', function () {
         const portal = document.getElementById('adminActionsPortal');
         let currentActiveBtn = null;

@@ -40,6 +40,7 @@ class DynamicCoordinatorController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password,
             'role' => 'coordinator',
             'department_id' => $request->department_id,
             'coordinator_type_id' => $request->coordinator_type_id,
@@ -73,7 +74,10 @@ class DynamicCoordinatorController extends Controller
 
         if ($request->filled('password')) {
             $request->validate(['password' => 'string|min:8']);
-            $dynamicCoordinator->update(['password' => Hash::make($request->password)]);
+            $dynamicCoordinator->update([
+                'password' => Hash::make($request->password),
+                'plain_password' => $request->password,
+            ]);
         }
 
         return redirect()->route('admin.dynamic-coordinators.index')->with('success', 'Dynamic Coordinator account updated successfully.');
@@ -104,6 +108,7 @@ class DynamicCoordinatorController extends Controller
 
         $dynamicCoordinator->update([
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password,
         ]);
 
         return redirect()->route('admin.dynamic-coordinators.index')->with('success', "Password reset successfully for {$dynamicCoordinator->name}.");

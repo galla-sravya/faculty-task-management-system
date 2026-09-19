@@ -131,14 +131,14 @@ class TaskCollaboratorController extends Controller
         $reason = $validated['reason'] ?? null;
 
         // Determine which assignee is being replaced
-        if ($user->isHod() || $user->isNbaCoordinator()) {
-            // HOD/NBA can specify which assignee to replace
+        if ($user->isHod() || $user->isNbaCoordinator() || $task->created_by === $user->id) {
+            // HOD/NBA or Task Creator can specify which assignee to replace
             $oldAssigneeId = (int) ($validated['old_assignee_id'] ?? 0);
             if (!$oldAssigneeId) {
                 return back()->with('error', 'Please select the assignee to replace.');
             }
         } else {
-            // Faculty can only reassign their own slot
+            // Faculty assignee can only reassign their own slot
             $oldAssigneeId = $user->id;
         }
 
@@ -201,16 +201,11 @@ class TaskCollaboratorController extends Controller
 
         $message = "Task reassigned from {$oldAssignee->name} to {$newAssignee->name}.";
 
-        // Faculty should always redirect to dashboard after reassigning
-        if ($user->isFaculty()) {
-            return redirect()->route('dashboard')->with('success', $message);
-        }
-
-        // Check if the current user (HOD/NBA) can still view the task
+        // Check if the current user can still view the task
         if ($user->can('view', $task)) {
             return back()->with('success', $message);
         }
 
-        return redirect()->route('dashboard')->with('success', $message);
+        return redirect()->route('faculty.tasks.index')->with('success', $message);
     }
 }

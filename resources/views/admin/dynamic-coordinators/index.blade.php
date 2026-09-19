@@ -37,7 +37,7 @@
                     <i class="bi bi-person-gear me-2 text-purple" style="color: #6f42c1;"></i>Dynamic Coordinator Accounts List ({{ $coordinators->count() }})
                 </h6>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive" style="overflow: visible;">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light small text-uppercase text-muted">
                         <tr>
@@ -86,51 +86,50 @@
                                     {{ $coord->created_at ? $coord->created_at->format('M d, Y') : '-' }}
                                 </td>
                                 <td class="text-end">
-                                    <div class="position-relative d-inline-block">
-                                        <button class="btn btn-sm btn-light border admin-actions-btn" type="button" data-actions-id="{{ $coord->id }}">
-                                            Actions <i class="bi bi-chevron-down ms-1 small"></i>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="true">
+                                            Actions
                                         </button>
-                                        <div class="d-none" id="adminActionsTemplate{{ $coord->id }}">
-                                            <ul class="list-unstyled mb-0 py-1">
-                                                <li>
-                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#viewCoordModal{{ $coord->id }}">
-                                                        <i class="bi bi-eye text-info"></i> View Details
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border rounded-3">
+                                            <li>
+                                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" data-bs-toggle="modal" data-bs-target="#viewCoordModal{{ $coord->id }}">
+                                                    <i class="bi bi-eye text-info"></i> View Details
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" data-bs-toggle="modal" data-bs-target="#editCoordModal{{ $coord->id }}">
+                                                    <i class="bi bi-pencil text-primary"></i> Edit Account
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $coord->id }}">
+                                                    <i class="bi bi-key text-warning"></i> Reset Password
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <form action="{{ route('admin.dynamic-coordinators.toggleStatus', $coord) }}" method="POST" class="m-0 p-0">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3">
+                                                        @if(($coord->status ?? 'active') === 'active')
+                                                            <i class="bi bi-person-x text-secondary"></i> Deactivate
+                                                        @else
+                                                            <i class="bi bi-person-check text-success"></i> Activate
+                                                        @endif
                                                     </button>
-                                                </li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#editCoordModal{{ $coord->id }}">
-                                                        <i class="bi bi-pencil text-primary"></i> Edit Account
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <form action="{{ route('admin.dynamic-coordinators.destroy', $coord) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this coordinator account?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 py-2 px-3">
+                                                        <i class="bi bi-trash"></i> Delete Account
                                                     </button>
-                                                </li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $coord->id }}">
-                                                        <i class="bi bi-key text-warning"></i> Reset Password
-                                                    </button>
-                                                </li>
-                                                <li>
-                                                    <form action="{{ route('admin.dynamic-coordinators.toggleStatus', $coord) }}" method="POST" class="m-0 p-0">
-                                                        @csrf
-                                                        <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 px-3 text-dark text-decoration-none border-0 bg-transparent w-100 text-start">
-                                                            @if(($coord->status ?? 'active') === 'active')
-                                                                <i class="bi bi-person-x text-secondary"></i> Deactivate
-                                                            @else
-                                                                <i class="bi bi-person-check text-success"></i> Activate
-                                                            @endif
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                                <li><hr class="dropdown-divider my-1"></li>
-                                                <li>
-                                                    <form action="{{ route('admin.dynamic-coordinators.destroy', $coord) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this coordinator account?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 py-2 px-3 text-decoration-none border-0 bg-transparent w-100 text-start">
-                                                            <i class="bi bi-trash"></i> Delete Account
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                                </form>
+                                            </li>
+                                        </ul>
                                     </div>
 
                                     <!-- View Details Modal -->
@@ -155,6 +154,24 @@
                                                         <li class="list-group-item d-flex justify-content-between px-0">
                                                             <span class="text-muted">Email</span>
                                                             <span class="fw-medium text-dark">{{ $coord->email }}</span>
+                                                        </li>
+                                                        <li class="list-group-item px-0">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">Password</span>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <span class="fw-medium text-danger" style="letter-spacing: 0.5px;">
+                                                                        {{ $coord->plain_password ?? '••••••••' }}
+                                                                    </span>
+                                                                    @if($coord->plain_password)
+                                                                        <button type="button" class="btn btn-sm btn-outline-secondary border-0 p-0 px-1" onclick="copyCredential(this, '{{ $coord->plain_password }}')" title="Copy Password">
+                                                                            <i class="bi bi-clipboard small"></i>
+                                                                        </button>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            @if(!$coord->plain_password)
+                                                                <small class="text-muted fst-italic d-block mt-1" style="font-size: 0.7rem;">Password was set before credential tracking was enabled. Reset to view.</small>
+                                                            @endif
                                                         </li>
                                                         <li class="list-group-item d-flex justify-content-between px-0">
                                                             <span class="text-muted">Coordinator Type</span>
