@@ -21,6 +21,95 @@ class TaskDocumentController extends Controller
     /**
      * Review a document: approve, request_changes, or reject.
      */
+    
+    /**
+     * Upload one or more documents to a task.
+     */
+    public function store(Request $request, Task $task)
+    {
+        $this->authorize('view', $task);
+
+        $request->validate([
+            'documents'   => 'required|array|min:1',
+            'documents.*' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,png,jpg,jpeg',
+            'remarks'     => 'nullable|string|max:500',
+        ]);
+
+        $uploaded = [];
+
+        foreach ($request->file('documents') as $file) {
+            $path = $file->store('task_documents', 'public');
+
+            $doc = TaskDocument::create([
+                'task_id'       => $task->id,
+                'user_id'       => auth()->id(),
+                'file_name'     => $file->getClientOriginalName(),
+                'file_path'     => $path,
+                'version'       => 1,
+                'remarks'       => $request->input('remarks'),
+                'review_status' => 'submitted',
+                'file_size'     => $file->getSize(),
+                'file_type'     => $file->getClientMimeType(),
+            ]);
+
+            $uploaded[] = $doc;
+        }
+
+        if (!empty($uploaded)) {
+            $this->notificationService->notifyDocumentUploaded($task, count($uploaded), $uploaded[0]);
+            $this->notificationService->updateAutomaticTaskProgress($task, 'document upload');
+        }
+
+        return redirect()->route('hod.tasks.show', $task)
+            ->with('success', count($uploaded) . ' document(s) uploaded successfully.');
+    }
+
+    /**
+     * Upload a replacement version of an existing document.
+     */
+    public function replace(Request $request, Task $task, TaskDocument $document)
+    {
+        $this->authorize('view', $task);
+
+        if ($document->user_id !== auth()->id()) {
+            abort(403, 'Only the document owner may replace their own document.');
+        }
+
+        $request->validate([
+            'document' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,png,jpg,jpeg',
+            'remarks'  => 'nullable|string|max:500',
+        ]);
+
+        $file = $request->file('document');
+        $path = $file->store('task_documents', 'public');
+
+        // Determine root document and next version number
+        $rootId = $document->original_document_id ?? $document->id;
+        $maxVersion = TaskDocument::where(function ($q) use ($rootId) {
+            $q->where('id', $rootId)->orWhere('original_document_id', $rootId);
+        })->max('version');
+
+        $newDoc = TaskDocument::create([
+            'task_id'              => $task->id,
+            'user_id'              => auth()->id(),
+            'file_name'            => $file->getClientOriginalName(),
+            'file_path'            => $path,
+            'version'              => $maxVersion + 1,
+            'original_document_id' => $rootId,
+            'remarks'              => $request->input('remarks'),
+            'review_status'        => 'submitted',
+            'file_size'            => $file->getSize(),
+            'file_type'            => $file->getClientMimeType(),
+        ]);
+
+        // Centralized notification & activity logging
+        $this->notificationService->notifyDocumentReuploaded($task, $newDoc);
+        $this->notificationService->updateAutomaticTaskProgress($task, 'document re-upload');
+
+        return redirect()->route('hod.tasks.show', $task)
+            ->with('success', 'Document replaced successfully (v' . $newDoc->version . ').');
+    }
+
     public function review(Request $request, Task $task, TaskDocument $document)
     {
         $this->authorize('reviewDocument', $task);

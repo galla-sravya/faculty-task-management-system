@@ -292,6 +292,37 @@
             </div>
         </div>
 
+        
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- DOCUMENT UPLOAD SECTION                                         -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-navy d-flex align-items-center gap-2">
+                    <i class="bi bi-cloud-upload text-warning fs-5"></i> Upload Documents
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ route('nba.tasks.documents.store', $task) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Select File(s) <span class="text-danger">*</span></label>
+                        <input type="file" name="documents[]" multiple class="form-control border" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
+                        <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>PDF, DOCX, XLSX, PNG (Max 10MB per file).
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Remarks (optional)</label>
+                        <textarea name="remarks" class="form-control border" rows="2" placeholder="Any notes about these documents?"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm" style="background-color: var(--navy);">
+                        <i class="bi bi-cloud-upload me-1"></i>Upload Document(s)
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Submitted Documents Review Section -->
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
@@ -319,6 +350,11 @@
                             <a href="{{ route('nba.tasks.documents.download', [$task, $doc]) }}" class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;">
                                 <i class="bi bi-download me-1"></i> Download
                             </a>
+                            @if($doc->user_id === auth()->id())
+                                <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" title="Replace Document" data-bs-toggle="modal" data-bs-target="#replaceDocModal{{ $doc->id }}">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Replace
+                                </button>
+                            @endif
 
                             @can('reviewDocument', $task)
                             <button class="btn btn-xs btn-psg-primary py-1 px-2" style="font-size:0.75rem;" data-bs-toggle="modal" data-bs-target="#reviewDocModal{{ $doc->id }}">
@@ -328,6 +364,37 @@
                         </div>
                     </div>
 
+                    
+                    <!-- Replace Modal for Doc -->
+                    @if($doc->user_id === auth()->id())
+                    <div class="modal fade" id="replaceDocModal{{ $doc->id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <form action="{{ route('nba.tasks.documents.replace', [$task, $doc]) }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title fw-bold text-navy">Replace Document: {{ $doc->file_name }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold text-dark small">New File <span class="text-danger">*</span></label>
+                                            <input type="file" name="document" class="form-control border" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold text-dark small">Remarks (optional)</label>
+                                            <textarea name="remarks" class="form-control border" rows="2" placeholder="What changed in this version?"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-psg-primary">Upload New Version</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    @endif
                     <!-- Review Modal for Doc -->
                     @can('reviewDocument', $task)
                     <div class="modal fade" id="reviewDocModal{{ $doc->id }}" tabindex="-1" aria-hidden="true">

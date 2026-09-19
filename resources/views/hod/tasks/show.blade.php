@@ -622,6 +622,36 @@ function confirmDeleteWorkItem(event, title) {
     </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DOCUMENT UPLOAD SECTION                                         -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card bg-white shadow-sm border-0 mt-4" style="border-radius: var(--radius, 8px);">
+    <div class="card-header bg-white border-bottom py-3">
+        <h6 class="m-0 fw-bold" style="color: var(--navy);">
+            <i class="bi bi-cloud-upload me-2" style="color: var(--gold);"></i>Upload Documents
+        </h6>
+    </div>
+    <div class="card-body p-4">
+        <form action="{{ route('hod.tasks.documents.store', $task) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-dark small">Select File(s) <span class="text-danger">*</span></label>
+                <input type="file" name="documents[]" multiple class="form-control border" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
+                <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">
+                    <i class="bi bi-info-circle me-1"></i>PDF, DOCX, XLSX, PNG (Max 10MB per file).
+                </small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-dark small">Remarks (optional)</label>
+                <textarea name="remarks" class="form-control border" rows="2" placeholder="Any notes about these documents?"></textarea>
+            </div>
+            <button type="submit" class="btn btn-sm text-white fw-medium shadow-sm" style="background-color: var(--navy);">
+                <i class="bi bi-cloud-upload me-1"></i>Upload Document(s)
+            </button>
+        </form>
+    </div>
+</div>
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- DOCUMENT REVIEW SECTION                                       -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -711,6 +741,11 @@ function confirmDeleteWorkItem(event, title) {
                             <button class="btn btn-sm btn-outline-info px-2 py-1" style="font-size: 0.7rem;" title="Version History" onclick="loadVersionHistoryHOD({{ $doc->original_document_id ?? $doc->id }}, {{ $task->id }})">
                                 <i class="bi bi-clock-history"></i>
                             </button>
+                            @if($doc->user_id === auth()->id())
+                                <button class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size: 0.7rem;" title="Replace Document" data-bs-toggle="modal" data-bs-target="#replaceDocModal{{ $doc->id }}">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            @endif
                             {{-- Review Actions (only for submitted documents) --}}
                             @if($doc->review_status === 'submitted')
                                 <button class="btn btn-sm btn-outline-success px-2 py-1" style="font-size: 0.7rem;" title="Approve" data-bs-toggle="modal" data-bs-target="#reviewModal{{ $doc->id }}" onclick="setReviewAction({{ $doc->id }}, 'approved')">
@@ -766,6 +801,47 @@ function confirmDeleteWorkItem(event, title) {
         @endforeach
     </div>
 </div>
+@endif
+
+
+<!-- Replace Document Modals -->
+@if(isset($latestDocsGrouped) && isset($latestDocsGrouped[auth()->id()]))
+    @foreach($latestDocsGrouped[auth()->id()] as $doc)
+        <div class="modal fade" id="replaceDocModal{{ $doc->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="{{ route('hod.tasks.documents.replace', [$task, $doc]) }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="modal-header border-bottom py-3" style="background: var(--navy);">
+                            <h6 class="modal-title text-white fw-bold">
+                                <i class="bi bi-arrow-repeat me-2"></i>Replace Document
+                            </h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="alert alert-info py-2 px-3 small mb-3">
+                                <i class="bi bi-info-circle me-1"></i>Replacing: <strong>{{ $doc->file_name }}</strong> (v{{ $doc->version }})
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-dark small">New File <span class="text-danger">*</span></label>
+                                <input type="file" name="document" class="form-control border" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-dark small">Remarks (optional)</label>
+                                <textarea name="remarks" class="form-control border" rows="2" placeholder="What changed in this version?"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top bg-light">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm text-white fw-medium" style="background-color: var(--navy);">
+                                <i class="bi bi-upload me-1"></i>Upload New Version
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
 @endif
 
 <!-- Version History Modal (HOD) -->
