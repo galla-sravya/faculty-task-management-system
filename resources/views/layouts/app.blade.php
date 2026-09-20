@@ -86,7 +86,7 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center justify-content-between">
-                                <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Task Could Not Be Created</h6>
+                                <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Error</h6>
                                 <button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.75rem;"></button>
                             </div>
                             <p class="mb-0 text-secondary small" style="font-size: 0.83rem; line-height: 1.45;">

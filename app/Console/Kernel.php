@@ -12,8 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('reminders:send-progress')->everyMinute();
+    $schedule->command('reminders:send-overdue')->dailyAt('09:00')->timezone('Asia/Kolkata');
     }
+
 
     /**
      * Register the commands for the application.

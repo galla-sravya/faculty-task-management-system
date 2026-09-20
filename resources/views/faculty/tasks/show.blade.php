@@ -45,7 +45,22 @@
         <h1 class="h3 fw-bold mb-1" style="color: var(--navy);">Update Task Progress</h1>
         <p class="text-muted small mb-0">Report your progress, add remarks, and manage task collaborators</p>
     </div>
-    <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
+            @if($task->status === 'completed')
+                <span class="badge bg-success text-white py-2 px-3 fw-bold d-flex align-items-center gap-1 shadow-sm">
+                    <i class="bi bi-check-circle-fill"></i> Task Completed
+                </span>
+            @else
+                @if($task->created_by === auth()->id() || auth()->user()->isHod())
+                    <button class="btn btn-sm btn-success text-white fw-medium d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#markCompletedModal">
+                        <i class="bi bi-check2-circle"></i> Mark as Completed
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning text-dark fw-medium d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#sendReminderModal" style="background-color: #fff3cd; border-color: #ffeeba;">
+                        <i class="bi bi-bell-fill text-warning"></i> Send Reminder Mail
+                    </button>
+            @endif
+        @endif
+
         @can('reassign', $task)
         <button class="btn btn-sm btn-outline-primary fw-medium d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#reassignTaskModal" style="border-color: var(--navy); color: var(--navy);">
             <i class="bi bi-arrow-repeat"></i> Reassign Task
@@ -287,11 +302,21 @@
                         });
                     </script>
 
-                    <!-- Action Buttons -->
+                                        <!-- Action Buttons -->
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn text-white fw-bold py-2 shadow-sm" style="background-color: var(--navy);">
-                            <i class="bi bi-cloud-upload me-2"></i>Save Progress
-                        </button>
+                        @if($task->status === 'completed')
+                            <div class="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                <span><strong>Task Completed:</strong> This task has been closed. Further edits and file uploads are locked.</span>
+                            </div>
+                            <button type="button" class="btn btn-secondary fw-bold py-2" disabled>
+                                <i class="bi bi-lock-fill me-2"></i>Submissions Closed
+                            </button>
+                        @else
+                            <button type="submit" class="btn text-white fw-bold py-2 shadow-sm" style="background-color: var(--navy);">
+                                <i class="bi bi-cloud-upload me-2"></i>Save Progress
+                            </button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -300,7 +325,7 @@
     @else
     <!-- Overall Progress and Assigned Faculty -->
     <div class="col-lg-6 mb-4">
-        <div class="card bg-white shadow-sm border-0 h-100 mb-3" style="border-radius: var(--radius, 8px);">
+        <div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
             <div class="card-header bg-white border-bottom py-3">
                 <h6 class="m-0 fw-bold" style="color: var(--navy);">
                     <i class="bi bi-bar-chart-steps me-2" style="color: var(--gold);"></i>Overall Progress
@@ -317,7 +342,7 @@
             </div>
         </div>
 
-        <div class="card bg-white shadow-sm border-0 h-100" style="border-radius: var(--radius, 8px);">
+        <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">
             <div class="card-header bg-white border-bottom py-3">
                 <h6 class="m-0 fw-bold" style="color: var(--navy);">
                     <i class="bi bi-people me-2" style="color: var(--gold);"></i>Assigned Faculty
@@ -345,6 +370,7 @@
         </div>
     </div>
     @endif
+</div>
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- SHARED WORKSPACE DOCUMENTS MANAGEMENT SECTION                  -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -435,7 +461,7 @@
                                             <td class="pe-3 text-end">
                                                 <div class="d-flex align-items-center gap-1 justify-content-end">
                                                     {{-- View document in new tab --}}
-                                                    <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary px-2.5 py-1 fw-medium" style="font-size: 0.75rem; border-color: var(--navy); color: var(--navy);" title="View Document in New Tab">
+                                                    <a href="{{ route('faculty.tasks.documents.download', [$task, $doc]) }}" target="_blank" class="btn btn-sm btn-outline-primary px-2.5 py-1 fw-medium" style="font-size: 0.75rem; border-color: var(--navy); color: var(--navy);" title="Download Document">
                                                         <i class="bi bi-eye me-1"></i>View
                                                     </a>
                                                     {{-- Version History modal --}}
@@ -562,7 +588,7 @@
                             <div class="text-dark" style="font-size:0.85rem;">{{ $comment->comment }}</div>
                             @if($comment->attachment_path)
                                 <div class="mt-2">
-                                    <a href="{{ Storage::url($comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                    <a href="{{ asset('storage/' . $comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
                                         <i class="bi bi-paperclip text-primary"></i> {{ $comment->attachment_name ?? 'Attachment' }}
                                     </a>
                                 </div>
@@ -598,6 +624,36 @@
             setTimeout(() => toast.remove(), 400);
         }
     }, 5000);
+</script>
+@endif
+
+@if($errors->any())
+<div id="validationToastPopup" class="position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg rounded-3 p-3 bg-white border border-warning d-flex align-items-center gap-3"
+     style="z-index: 1090; min-width: 320px; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;">
+    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold text-dark small">Validation Failed</div>
+        <div class="text-secondary small" style="font-size: 0.83rem; line-height: 1.35;">
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    <button type="button" class="btn-close ms-2 small" onclick="document.getElementById('validationToastPopup').remove()"></button>
+</div>
+<script>
+    setTimeout(function() {
+        const toast = document.getElementById('validationToastPopup');
+        if (toast) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => toast.remove(), 400);
+        }
+    }, 6000);
 </script>
 @endif
 
@@ -1067,6 +1123,147 @@ function confirmDeleteWorkItem(event, title) {
     </div>
 </div>
 @endcan
+<!-- Send Reminder Mail Modal -->
+@if($task->created_by === auth()->id() || auth()->user()->isHod())
+<div class="modal fade" id="sendReminderModal" tabindex="-1" aria-labelledby="sendReminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('tasks.sendReminder', $task) }}" method="POST">
+                @csrf
+                <div class="modal-header border-bottom py-3" style="background: var(--navy);">
+                    <h5 class="modal-title text-white fw-bold d-flex align-items-center gap-2" id="sendReminderModalLabel">
+                        <i class="bi bi-bell-fill text-warning"></i> Send Task Reminder Email
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Send a reminder notification email to faculty members who have not completed this task. You can select all or pick specific faculty members from the list below.
+                    </p>
+
+                    @php
+                        $incompleteAssignees = $task->assignees->filter(function($a) {
+                            return $a->pivot->status !== 'completed' && (int)$a->pivot->progress_percentage < 100;
+                        });
+                    @endphp
+
+                    @if($incompleteAssignees->count() > 0)
+                        <div class="card mb-3 border">
+                            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold small text-dark">
+                                    <i class="bi bi-people me-1"></i> Pending / Incomplete Faculty ({{ $incompleteAssignees->count() }})
+                                </span>
+                                <div class="form-check m-0">
+                                    <input class="form-check-input" type="checkbox" id="selectAllReminderFaculty" checked onclick="toggleAllReminderFaculty(this)">
+                                    <label class="form-check-label small fw-semibold" for="selectAllReminderFaculty" style="cursor: pointer;">
+                                        Select All
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="card-body p-2" style="max-height: 220px; overflow-y: auto;">
+                                <div class="list-group list-group-flush">
+                                    @foreach($incompleteAssignees as $faculty)
+                                        <label class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-2 border-bottom-0 rounded mb-1" style="cursor: pointer;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <input class="form-check-input reminder-faculty-cb mt-0" type="checkbox" name="faculty_ids[]" value="{{ $faculty->id }}" checked>
+                                                <img src="{{ $faculty->profile_photo_url }}" alt="{{ $faculty->name }}" class="rounded-circle object-fit-cover" style="width: 32px; height: 32px; border: 1px solid var(--border);">
+                                                <div>
+                                                    <div class="fw-semibold text-dark small">{{ $faculty->name }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">{{ $faculty->email }} · <span class="badge bg-light text-secondary border">{{ ucfirst($faculty->pivot->role ?? 'Assignee') }}</span></div>
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.72rem;">{{ $faculty->pivot->progress_percentage ?? 0 }}% Done</span>
+                                                <div class="text-muted small text-capitalize" style="font-size: 0.7rem;">{{ str_replace('_', ' ', $faculty->pivot->status ?? 'pending') }}</div>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reminderMessage" class="form-label fw-semibold small text-dark">
+                                Optional Message / Instructions from You:
+                            </label>
+                            <textarea name="message" id="reminderMessage" class="form-control form-control-sm" rows="3" placeholder="e.g. Please submit your progress update and files today as the task deadline is approaching..."></textarea>
+                            <div class="form-text small">This custom note will be highlighted in the email sent to the selected faculty members.</div>
+                        </div>
+
+                        <div class="alert alert-light border small text-muted mb-0 py-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle text-primary"></i>
+                            <span>The email will include the task title, your note, deadline details, and a direct link for faculty to submit their work.</span>
+                        </div>
+                    @else
+                        <div class="alert alert-success text-center py-3 mb-0">
+                            <i class="bi bi-check-circle-fill fs-4 d-block mb-1"></i>
+                            <strong>All assignees have completed this task (100%)!</strong>
+                            <div class="small mt-1">There are no pending faculty members requiring reminder emails.</div>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    @if($incompleteAssignees->count() > 0)
+                        <button type="submit" class="btn btn-warning text-dark fw-semibold btn-sm d-flex align-items-center gap-1 shadow-sm">
+                            <i class="bi bi-send-fill"></i> Send Reminder Email Now
+                        </button>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAllReminderFaculty(source) {
+    const checkboxes = document.querySelectorAll('.reminder-faculty-cb');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+</script>
+@endif
+
+<!-- Mark as Completed Confirmation Modal -->
+@if($task->created_by === auth()->id() || auth()->user()->isHod())
+<div class="modal fade" id="markCompletedModal" tabindex="-1" aria-labelledby="markCompletedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('tasks.complete', $task) }}" method="POST">
+                @csrf
+                <div class="modal-header border-bottom py-3 bg-success text-white">
+                    <h5 class="modal-title text-white fw-bold d-flex align-items-center gap-2" id="markCompletedModalLabel">
+                        <i class="bi bi-check2-circle fs-5"></i> Mark Task as Fully Completed
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 px-3 small mb-3 d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle-fill text-warning mt-1 fs-5"></i>
+                        <div>
+                            <strong>Manual Completion Override:</strong><br>
+                            This will mark the entire task as <strong>100% completed</strong> for all assigned faculty members, close further file submissions, and stop all automated 9:00 AM overdue reminders.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="completionRemarks" class="form-label fw-semibold small text-dark">
+                            Reason / Remarks (Optional):
+                        </label>
+                        <textarea name="completion_remarks" id="completionRemarks" class="form-control form-control-sm" rows="3" placeholder="e.g. Work completed offline / verified in meeting with faculty..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success text-white fw-semibold btn-sm d-flex align-items-center gap-1 shadow-sm">
+                        <i class="bi bi-check2-all"></i> Confirm & Mark Completed
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 
 @endsection
 

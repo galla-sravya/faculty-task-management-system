@@ -6,13 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\Meeting;
-use App\Models\TaskAssignment;
-use App\Models\TaskDocument;
-use App\Models\TaskAuditLog;
-use App\Models\TaskActivity;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class TaskController extends Controller
 {
@@ -23,77 +18,94 @@ class TaskController extends Controller
         $this->notificationService = $notificationService;
     }
 
-    public function index(Request $request)
+        public function index(Request $request)
     {
         $user = auth()->user();
-        $viewType = $request->get('view', 'all');
+        
+        // Accept tab or view parameter from UI ('all', 'assigned', 'created', 'assigned_to_me', 'created_by_me')
+        $tab = $request->get('tab', $request->get('view', 'all'));
 
-        // Base query depending on view filter
-        if ($viewType === 'created') {
+        // Query based on selected tab
+        if (in_array($tab, ['created', 'created_by_me', 'my_created'])) {
+            // 1. Created by Me
             $tasksQuery = Task::where('created_by', $user->id)
                 ->with(['assignees', 'meeting', 'creator']);
-        } elseif ($viewType === 'assigned') {
+                
+            if ($request->filled('status')) {
+                if ($request->status === 'overdue') {
+                    $tasksQuery->where('deadline', '<', now())->where('status', '!=', 'completed');
+                } else {
+                    $tasksQuery->where('status', $request->status);
+                }
+            }
+        } elseif (in_array($tab, ['assigned', 'assigned_to_me', 'my_assigned'])) {
+            // 2. Assigned to Me
             $tasksQuery = $user->assignedTasks()
                 ->with(['assignees', 'meeting', 'creator']);
-        } else {
-            // 'all' - tasks created by me OR assigned to me
-            $tasksQuery = Task::where(function ($q) use ($user) {
-                $q->where('created_by', $user->id)
-                  ->orWhereHas('assignees', fn ($aq) => $aq->where('users.id', $user->id));
-            })->with(['assignees', 'meeting', 'creator']);
-        }
 
-        // Apply status filter
-        if ($request->filled('status')) {
-            if ($request->status === 'overdue') {
-                $tasksQuery->where('deadline', '<', now())->where('status', '!=', 'completed');
-            } else {
-                $tasksQuery->where('status', $request->status);
+            if ($request->filled('status')) {
+                if ($request->status === 'overdue') {
+                    $tasksQuery->where('deadline', '<', now())->wherePivot('status', '!=', 'completed');
+                } else {
+                    $tasksQuery->wherePivot('status', $request->status);
+                }
+            }
+        } else {
+            // 3. All Tasks (Both Assigned + Created)
+            $tab = 'all';
+            $tasksQuery = Task::where(function ($query) use ($user) {
+                $query->where('created_by', $user->id)
+                      ->orWhereHas('assignees', function ($q) use ($user) {
+                          $q->where('users.id', $user->id);
+                      });
+            })->with(['assignees', 'meeting', 'creator']);
+
+            if ($request->filled('status')) {
+                if ($request->status === 'overdue') {
+                    $tasksQuery->where('deadline', '<', now())->where('status', '!=', 'completed');
+                } else {
+                    $tasksQuery->where('status', $request->status);
+                }
             }
         }
 
-        // Apply priority filter
-        if ($request->filled('priority')) {
-            $tasksQuery->where('priority', $request->priority);
-        }
-
-        // Search query
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $tasksQuery->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        // Tab counts
-        $assignedCount = $user->assignedTasks()->count();
-        $createdCount = Task::where('created_by', $user->id)->count();
-        $allCount = Task::where(function ($q) use ($user) {
-            $q->where('created_by', $user->id)
-              ->orWhereHas('assignees', fn ($aq) => $aq->where('users.id', $user->id));
-        })->count();
-        $archivedCount = Task::onlyTrashed()->where('created_by', $user->id)->count();
-
         // Get paginated tasks
-        $tasks = $tasksQuery->orderBy('deadline', 'asc')->latest()->paginate(10)->withQueryString();
+        $tasks = $tasksQuery->orderBy('deadline', 'asc')->paginate(10)->withQueryString();
 
-        return view('faculty.tasks.index', compact('tasks', 'viewType', 'assignedCount', 'createdCount', 'allCount', 'archivedCount'));
+        // Counts for badges
+        $archivedCount = 0;
+        $assignedCount = $user->assignedTasks()->count();
+        $createdCount  = Task::where('created_by', $user->id)->count();
+        $allCount      = Task::where('created_by', $user->id)
+                            ->orWhereHas('assignees', fn($q) => $q->where('users.id', $user->id))
+                            ->count();
+        
+        $viewType = $tab;
+
+        return view('faculty.tasks.index', compact(
+            'tasks', 
+            'tab', 
+            'archivedCount', 
+            'viewType', 
+            'allCount', 
+            'assignedCount', 
+            'createdCount'
+        ));
     }
+
 
     public function create()
     {
-        $departmentId = auth()->user()->department_id;
-        $faculties = User::where('department_id', $departmentId)
+        $faculties = User::where('department_id', auth()->user()->department_id)
             ->where('role', 'faculty')
-            ->orderBy('name')
+            ->where('id', '!=', auth()->id()) // optionally exclude self
             ->get();
-        $meetings = Meeting::where('department_id', $departmentId)
+            
+        $meetings = Meeting::where('department_id', auth()->user()->department_id)
             ->latest()
             ->take(10)
             ->get();
-
+            
         return view('faculty.tasks.create', compact('faculties', 'meetings'));
     }
 
@@ -102,18 +114,16 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category'    => 'nullable|string|max:100',
             'priority'    => 'required|in:low,medium,high,urgent',
             'deadline'    => 'required|date|after:today',
-            'assignees'   => 'required|array|min:1',
+            'assignees'   => 'required|array',
             'assignees.*' => 'exists:users,id',
             'meeting_id'  => 'nullable|exists:meetings,id',
         ]);
 
         $task = Task::create([
             'title'         => $validated['title'],
-            'description'   => $validated['description'] ?? null,
-            'category'      => $validated['category'] ?? 'Faculty Assignment',
+            'description'   => $validated['description'],
             'priority'      => $validated['priority'],
             'deadline'      => $validated['deadline'],
             'created_by'    => auth()->id(),
@@ -128,46 +138,38 @@ class TaskController extends Controller
             $attachData[$userId] = [
                 'status'              => 'pending',
                 'progress_percentage' => 0,
-                'role'                => 'owner',
+                'role'                => 'collaborator', // faculty assigning to faculty makes them collaborators usually, or owner of subtask
                 'assigned_by'         => auth()->id(),
                 'assigned_at'         => now(),
             ];
 
-            TaskAssignment::create([
+            \App\Models\TaskAssignment::create([
                 'task_id'     => $task->id,
                 'faculty_id'  => $userId,
                 'assigned_by' => auth()->id(),
-                'role'        => 'owner',
+                'role'        => 'collaborator',
                 'status'      => 'pending',
                 'assigned_at' => now(),
             ]);
         }
         $task->assignees()->attach($attachData);
 
-        // Centralized Notification & Activity Logging
+        // Notify
         $this->notificationService->notifyTaskAssigned($task, $validated['assignees']);
 
-        return redirect()->route('faculty.tasks.index', ['view' => 'created'])->with('success', 'Task created and assigned successfully.');
+        return redirect()->route('faculty.tasks.index', ['tab' => 'created'])->with('success', 'Task created and assigned successfully.');
     }
 
-    public function show($id)
+    public function show(Task $task)
     {
-        $task = Task::withTrashed()->findOrFail($id);
         $this->authorize('view', $task);
-
-        $task->load([
-            'creator',
-            'meeting',
-            'checklistItems.creator',
-            'checklistItems.assignee',
-            'checklistItems.completedByUser',
-            'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at', 'is_reassigned')
-        ]);
+        $task->load(['creator', 'meeting', 'checklistItems.creator', 'checklistItems.assignee', 'checklistItems.completedByUser', 'assignees' => fn($q) => $q->withPivot('status', 'progress_percentage', 'remarks', 'completed_at', 'created_at', 'updated_at', 'is_reassigned')]);
         
-        $pivot = $task->assignees()->where('user_id', auth()->id())->first()?->pivot;
+        $assigneeRecord = $task->assignees()->where('user_id', auth()->id())->first();
+        $pivot = $assigneeRecord ? $assigneeRecord->pivot : null;
         
         // Shared Workspace: Get all documents uploaded for this task across all collaborators
-        $allTaskDocuments = TaskDocument::where('task_id', $task->id)
+        $allTaskDocuments = \App\Models\TaskDocument::where('task_id', $task->id)
             ->with(['user', 'reviewer'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -190,216 +192,55 @@ class TaskController extends Controller
         $orphans = $childDocs->filter(fn ($d) => !$coveredRootIds->contains($d->original_document_id));
         $latestDocuments = $latestDocuments->merge($orphans)->sortByDesc('created_at')->values();
 
-        // Group latest documents by uploading faculty member
+        // Group latest documents by uploading faculty member (Faculty and HOD see only latest versions)
         $groupedDocuments = $latestDocuments->groupBy('user_id');
 
         // Current faculty user's latest uploaded document
-        $myLatestDoc = TaskDocument::where('task_id', $task->id)
+        $myLatestDoc = \App\Models\TaskDocument::where('task_id', $task->id)
             ->where('user_id', auth()->id())
             ->orderBy('version', 'desc')
             ->first();
         
-        return view('faculty.tasks.show', compact('task', 'pivot', 'allTaskDocuments', 'latestDocuments', 'groupedDocuments', 'myLatestDoc'));
-    }
-
-    public function edit(Task $task)
-    {
-        $this->authorize('update', $task);
-        
-        $departmentId = auth()->user()->department_id;
-        $faculties = User::where('department_id', $departmentId)
-            ->where('role', 'faculty')
-            ->orderBy('name')
-            ->get();
-        $meetings = Meeting::where('department_id', $departmentId)
-            ->latest()
-            ->take(10)
-            ->get();
-            
-        $task->load('assignees');
-        $selectedAssignees = $task->assignees->pluck('id')->toArray();
-            
-        return view('faculty.tasks.edit', compact('task', 'faculties', 'meetings', 'selectedAssignees'));
-    }
-
-    public function update(Request $request, Task $task)
-    {
-        $this->authorize('update', $task);
-        
-        $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category'    => 'nullable|string|max:100',
-            'priority'    => 'required|in:low,medium,high,urgent',
-            'deadline'    => 'required|date',
-            'assignees'   => 'required|array|min:1',
-            'assignees.*' => 'exists:users,id',
-            'meeting_id'  => 'nullable|exists:meetings,id',
-        ]);
-
-        $oldValues = [
-            'title'       => $task->title,
-            'description' => $task->description,
-            'category'    => $task->category,
-            'priority'    => $task->priority,
-            'deadline'    => $task->deadline ? $task->deadline->format('Y-m-d H:i') : '',
-            'meeting_id'  => $task->meeting_id,
-        ];
-
-        $task->update([
-            'title'       => $validated['title'],
-            'description' => $validated['description'],
-            'category'    => $validated['category'] ?? $task->category,
-            'priority'    => $validated['priority'],
-            'deadline'    => $validated['deadline'],
-            'meeting_id'  => $validated['meeting_id'] ?? null,
-        ]);
-
-        $newDeadlineFormatted = Carbon::parse($validated['deadline'])->format('Y-m-d H:i');
-
-        // Field-level change detection
-        $changes = [];
-        if ($oldValues['title'] !== $validated['title']) {
-            $changes['title'] = ['old' => $oldValues['title'], 'new' => $validated['title']];
-        }
-        if ($oldValues['description'] !== $validated['description']) {
-            $changes['description'] = ['old' => $oldValues['description'] ?? 'None', 'new' => $validated['description'] ?? 'None'];
-        }
-        if ($oldValues['priority'] !== $validated['priority']) {
-            $changes['priority'] = ['old' => ucfirst($oldValues['priority']), 'new' => ucfirst($validated['priority'])];
-        }
-        if ($oldValues['category'] !== ($validated['category'] ?? $task->category)) {
-            $changes['category'] = ['old' => $oldValues['category'] ?? 'General', 'new' => $validated['category'] ?? 'General'];
-        }
-        if ($oldValues['deadline'] !== $newDeadlineFormatted) {
-            $changes['deadline'] = ['old' => $oldValues['deadline'], 'new' => $newDeadlineFormatted];
-        }
-
-        // Sync Assignees with change detection
-        $currentAssignees = $task->assignees->pluck('id')->toArray();
-        $newAssignees = $validated['assignees'];
-        
-        $toAttach = array_diff($newAssignees, $currentAssignees);
-        $toDetach = array_diff($currentAssignees, $newAssignees);
-        
-        if (!empty($toDetach)) {
-            foreach ($toDetach as $id) {
-                $u = User::find($id);
-                if ($u) {
-                    $this->notificationService->notifyCollaboratorRemoved($task, $u);
-                }
-            }
-            $task->assignees()->detach($toDetach);
-            TaskAssignment::where('task_id', $task->id)->whereIn('faculty_id', $toDetach)->delete();
-        }
-        
-        if (!empty($toAttach)) {
-            $attachData = [];
-            foreach ($toAttach as $id) {
-                $u = User::find($id);
-                $attachData[$id] = [
-                    'status'              => 'pending',
-                    'progress_percentage' => 0,
-                    'role'                => 'owner',
-                    'assigned_by'         => auth()->id(),
-                    'assigned_at'         => now(),
-                ];
-                TaskAssignment::create([
-                    'task_id'     => $task->id,
-                    'faculty_id'  => $id,
-                    'assigned_by' => auth()->id(),
-                    'role'        => 'owner',
-                    'status'      => 'pending',
-                    'assigned_at' => now(),
+                    // If documents exist and progress is below 75%, automatically update to 75% and in_progress
+        $hasDocs = \App\Models\TaskDocument::where('task_id', $task->id)->where('user_id', auth()->id())->exists();
+        if ($hasDocs && $pivot->progress_percentage < 75 && $pivot->status !== 'completed') {
+            $newStatus = ($pivot->status === 'pending') ? 'in_progress' : $pivot->status;
+            \Illuminate\Support\Facades\DB::table('task_user')
+                ->where('task_id', $task->id)
+                ->where('user_id', auth()->id())
+                ->update([
+                    'progress_percentage' => 75,
+                    'status'              => $newStatus,
+                    'updated_at'          => now(),
                 ]);
-                if ($u) {
-                    $this->notificationService->notifyCollaboratorAdded($task, $u);
-                }
+
+            $pivot->progress_percentage = 75;
+            $pivot->status = $newStatus;
+
+            if ($task->status === 'pending') {
+                $task->update(['status' => 'in_progress']);
             }
-            $task->assignees()->attach($attachData);
         }
 
-        // Notify updated task details and log changes
-        $this->notificationService->notifyTaskUpdated($task, $changes, $currentAssignees);
-
-        return redirect()->route('faculty.tasks.show', $task)->with('success', 'Task updated and audit log recorded.');
-    }
-
-    /**
-     * Archive task (Soft Delete).
-     */
-    public function destroy($id)
-    {
-        $task = Task::withTrashed()->findOrFail($id);
-
-        if ($task->trashed()) {
-            return redirect()->route('faculty.tasks.index')->with('success', 'Task is already archived.');
-        }
-
-        $this->authorize('delete', $task);
-
-        $this->notificationService->notifyTaskArchived($task);
-
-        $task->delete(); // Soft delete
-
-        return redirect()->route('faculty.tasks.index')->with('success', 'Task archived successfully.');
-    }
-
-    /**
-     * List archived tasks for Faculty with search and filters.
-     */
-    public function archived(Request $request)
-    {
-        $query = Task::onlyTrashed()
-            ->where('created_by', auth()->id())
-            ->with(['assignees', 'creator']);
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
-                  ->orWhereHas('assignees', fn ($aq) => $aq->where('name', 'like', "%{$search}%"));
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('priority')) {
-            $query->where('priority', $request->priority);
-        }
-
-        $archivedTasks = $query->latest('deleted_at')->paginate(10)->withQueryString();
-
-        return view('faculty.tasks.archived', compact('archivedTasks'));
-    }
-
-    /**
-     * Restore archived task.
-     */
-    public function restore($id)
-    {
-        $task = Task::onlyTrashed()->findOrFail($id);
-        $this->authorize('restore', $task);
-
-        $task->restore();
-
-        $this->notificationService->notifyTaskRestored($task);
-
-        return redirect()->route('faculty.tasks.show', $task)->with('success', 'Task restored successfully.');
+        return view('faculty.tasks.show', compact('task', 'pivot', 'allTaskDocuments', 'latestDocuments', 'groupedDocuments', 'myLatestDoc'));
     }
 
     public function updateProgress(Request $request, Task $task)
     {
+        // Detect if post_max_size was exceeded (PHP drops $_POST entirely, leading to silent failure)
+        $contentLength = (int) $request->server('CONTENT_LENGTH');
+        if ($contentLength > 0 && empty($request->all())) {
+            return redirect()->back()->with('error', 'Upload failed: The file size exceeds the server limit (' . ini_get('post_max_size') . '). Please upload a smaller file.');
+        }
+
         $this->authorize('updateProgress', $task);
         
         $validated = $request->validate([
             'progress_percentage' => 'nullable|integer|min:0|max:100',
             'status'              => 'nullable|string',
             'remarks'             => 'nullable|string',
-            'document'            => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,png,jpg,jpeg|max:10240',
+            'document.*'          => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip,png,jpg,jpeg|max:10240',
+            'upload_action'       => 'nullable|string',
         ]);
         
         $progress = isset($validated['progress_percentage']) ? (int) $validated['progress_percentage'] : null;
@@ -445,43 +286,73 @@ class TaskController extends Controller
         $oldProgress = $pivot ? (int) $pivot->progress_percentage : 0;
         $oldRemarks = $pivot ? $pivot->remarks : null;
 
-        // Document Replacement Logic
-        $uploadedDoc = null;
+        // Document Replacement/Upload Logic
+        $uploadedDocsCount = 0;
+        $replacedDocName = null;
+        $lastUploadedDoc = null;
 
-        if ($request->hasFile('document')) {
-            $file = $request->file('document');
-            $path = $file->store('task_documents', 'public');
+        $files = $request->file('document');
+        if (!is_array($files)) {
+            $files = $files ? [$files] : [];
+        }
+        
+        // Filter out empty/invalid files (e.g. when form submits without a file)
+        $validFiles = array_filter($files, function($file) {
+            return $file && $file->isValid();
+        });
 
-            // Find previous version uploaded by current faculty
-            $existingDoc = TaskDocument::where('task_id', $task->id)
-                ->where('user_id', auth()->id())
-                ->orderBy('version', 'desc')
-                ->first();
+        if (count($validFiles) > 0) {
+            $uploadAction = $request->input('upload_action', 'new');
+            
+            $replaceDocId = null;
+            if (str_starts_with($uploadAction, 'replace_')) {
+                $replaceDocId = (int) str_replace('replace_', '', $uploadAction);
+            }
 
-            if ($existingDoc) {
-                $newVersion = $existingDoc->version + 1;
-                $rootId = $existingDoc->original_document_id ?? $existingDoc->id;
+            foreach ($validFiles as $index => $file) {
+                $path = $file->store('task_documents', 'public');
+                if (!$path) {
+                    return redirect()->back()->with('error', 'Upload failed: The server could not write the file to the disk. Please check your storage folder permissions.');
+                }
+                
+                // Only replace if it's the very first file and a replace action was selected
+                if ($index === 0 && $replaceDocId) {
+                    $existingDoc = \App\Models\TaskDocument::where('task_id', $task->id)
+                        ->where('user_id', auth()->id())
+                        ->where('id', $replaceDocId)
+                        ->first();
+                        
+                    if ($existingDoc) {
+                        $newVersion = $existingDoc->version + 1;
+                        $rootId = $existingDoc->original_document_id ?? $existingDoc->id;
 
-                $uploadedDoc = TaskDocument::create([
-                    'task_id'              => $task->id,
-                    'user_id'              => auth()->id(),
-                    'original_document_id' => $rootId,
-                    'file_name'            => $file->getClientOriginalName(),
-                    'file_path'            => $path,
-                    'version'              => $newVersion,
-                    'review_status'        => 'draft',
-                    'remarks'              => $validated['remarks'] ?? null,
-                ]);
+                        $lastUploadedDoc = \App\Models\TaskDocument::create([
+                            'task_id'              => $task->id,
+                            'user_id'              => auth()->id(),
+                            'original_document_id' => $rootId,
+                            'file_name'            => $file->getClientOriginalName(),
+                            'file_path'            => $path,
+                            'version'              => $newVersion,
+                            'review_status'        => 'draft',
+                            'remarks'              => $validated['remarks'] ?? null,
+                        ]);
+                        
+                        $replacedDocName = $file->getClientOriginalName();
+                        $uploadedDocsCount++;
 
-                TaskAuditLog::create([
-                    'task_id'    => $task->id,
-                    'user_id'    => auth()->id(),
-                    'field_name' => 'document_replaced',
-                    'old_value'  => $existingDoc->file_name . ' (v' . $existingDoc->version . ')',
-                    'new_value'  => $file->getClientOriginalName() . ' (v' . $newVersion . ')',
-                ]);
-            } else {
-                $uploadedDoc = TaskDocument::create([
+                        \App\Models\TaskAuditLog::create([
+                            'task_id'    => $task->id,
+                            'user_id'    => auth()->id(),
+                            'field_name' => 'document_replaced',
+                            'old_value'  => $existingDoc->file_name . ' (v' . $existingDoc->version . ')',
+                            'new_value'  => $file->getClientOriginalName() . ' (v' . $newVersion . ')',
+                        ]);
+                        continue; // Skip the "new" block for this first file
+                    }
+                }
+                
+                // Add as new document
+                $lastUploadedDoc = \App\Models\TaskDocument::create([
                     'task_id'              => $task->id,
                     'user_id'              => auth()->id(),
                     'original_document_id' => null,
@@ -491,8 +362,10 @@ class TaskController extends Controller
                     'review_status'        => 'draft',
                     'remarks'              => $validated['remarks'] ?? null,
                 ]);
+                
+                $uploadedDocsCount++;
 
-                TaskAuditLog::create([
+                \App\Models\TaskAuditLog::create([
                     'task_id'    => $task->id,
                     'user_id'    => auth()->id(),
                     'field_name' => 'document_uploaded',
@@ -502,15 +375,22 @@ class TaskController extends Controller
             }
         }
 
-        // Update current user's pivot record if user is an assignee
-        if ($task->assignees()->where('user_id', auth()->id())->exists()) {
-            auth()->user()->assignedTasks()->updateExistingPivot($task->id, [
+        // Auto-update to 75% ONLY when a file is uploaded (allows manual slider updates anytime)
+        if ($uploadedDocsCount > 0 && $progress < 75) {
+            $progress = 75;
+            $status   = 'checklist_completed';
+        }
+        // Update current user's pivot record directly in database
+        \Illuminate\Support\Facades\DB::table('task_user')
+            ->where('task_id', $task->id)
+            ->where('user_id', auth()->id())
+            ->update([
                 'progress_percentage' => $progress,
                 'status'              => $status,
                 'remarks'             => $validated['remarks'] ?? null,
                 'completed_at'        => $progress === 100 ? now() : null,
+                'updated_at'          => now(),
             ]);
-        }
 
         // Sync main task status
         if ($progress === 100 && $task->status !== 'completed') {
@@ -527,16 +407,18 @@ class TaskController extends Controller
 
         // Single Combined Notification & Activity Log Logic
         $actor = auth()->user();
-        $recipientId = $task->created_by;
+        $hodId = $task->created_by;
 
-        if ($progressChanged && $uploadedDoc) {
-            $activityMsg = "{$actor->name} updated progress from {$oldProgress}% to {$newProgress}% and uploaded supporting document: {$uploadedDoc->file_name}.";
-            $notifMsg = "{$actor->name} updated progress from {$oldProgress}% to {$newProgress}% and uploaded a supporting document for Task: \"{$task->title}\".";
-            $successMsg = "Progress and supporting document submitted for review.";
-        } elseif ($uploadedDoc) {
-            $activityMsg = "{$actor->name} uploaded supporting document: {$uploadedDoc->file_name} (v{$uploadedDoc->version}).";
-            $notifMsg = "{$actor->name} uploaded an updated supporting document for Task: \"{$task->title}\".";
-            $successMsg = "Supporting document updated successfully.";
+        if ($progressChanged && $uploadedDocsCount > 0) {
+            $docStr = $uploadedDocsCount === 1 ? ($replacedDocName ? $replacedDocName : $lastUploadedDoc->file_name) : "{$uploadedDocsCount} documents";
+            $activityMsg = "{$actor->name} updated progress from {$oldProgress}% to {$newProgress}% and uploaded {$docStr}.";
+            $notifMsg = "{$actor->name} updated progress from {$oldProgress}% to {$newProgress}% and uploaded supporting document(s) for Task: \"{$task->title}\".";
+            $successMsg = "Progress and supporting document(s) submitted for review.";
+        } elseif ($uploadedDocsCount > 0) {
+            $docStr = $uploadedDocsCount === 1 ? ($replacedDocName ? $replacedDocName : $lastUploadedDoc->file_name) : "{$uploadedDocsCount} documents";
+            $activityMsg = "{$actor->name} uploaded {$docStr}.";
+            $notifMsg = "{$actor->name} uploaded updated supporting document(s) for Task: \"{$task->title}\".";
+            $successMsg = "Supporting document(s) uploaded successfully.";
         } elseif ($progressChanged) {
             $activityMsg = "{$actor->name} updated progress from {$oldProgress}% to {$newProgress}%.";
             $notifMsg = "Progress updated from {$oldProgress}% to {$newProgress}% for Task: \"{$task->title}\".";
@@ -548,7 +430,7 @@ class TaskController extends Controller
         }
 
         if ($progressChanged) {
-            TaskAuditLog::create([
+            \App\Models\TaskAuditLog::create([
                 'task_id'    => $task->id,
                 'user_id'    => $actor->id,
                 'field_name' => 'progress_percentage',
@@ -558,7 +440,7 @@ class TaskController extends Controller
         }
 
         if ($remarksChanged && !empty($validated['remarks'])) {
-            TaskAuditLog::create([
+            \App\Models\TaskAuditLog::create([
                 'task_id'    => $task->id,
                 'user_id'    => $actor->id,
                 'field_name' => 'remarks',
@@ -567,16 +449,16 @@ class TaskController extends Controller
             ]);
         }
 
-        TaskActivity::create([
+        \App\Models\TaskActivity::create([
             'task_id'     => $task->id,
             'user_id'     => $actor->id,
-            'action'      => $progress === 100 ? 'completed' : ($uploadedDoc ? 'document_uploaded' : 'progress_updated'),
+            'action'      => $progress === 100 ? 'completed' : ($uploadedDocsCount > 0 ? 'document_uploaded' : 'progress_updated'),
             'description' => $activityMsg,
         ]);
 
-        if ($recipientId && $recipientId !== $actor->id) {
+        if ($hodId && $hodId !== $actor->id) {
             $this->notificationService->logNotification(
-                $recipientId,
+                $hodId,
                 'progress_updated',
                 $task->id,
                 Task::class,

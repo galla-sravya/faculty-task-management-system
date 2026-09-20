@@ -212,6 +212,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Task Collaborator Routes
     Route::post('/tasks/{task}/collaborators', [App\Http\Controllers\TaskCollaboratorController::class, 'store'])->name('tasks.collaborators.store')->withTrashed();
     Route::delete('/tasks/{task}/collaborators/{user}', [App\Http\Controllers\TaskCollaboratorController::class, 'destroy'])->name('tasks.collaborators.destroy')->withTrashed();
+        
+    // Task Reminder & Completion Routes
+    Route::post('/tasks/{task}/send-reminders', [App\Http\Controllers\TaskReminderController::class, 'sendReminder'])->name('tasks.sendReminder');
+    Route::post('/tasks/{task}/complete', [App\Http\Controllers\TaskReminderController::class, 'markAsCompleted'])->name('tasks.complete');
+    Route::post('/nba-tasks/{task}/send-reminders', [App\Http\Controllers\TaskReminderController::class, 'sendNbaReminder'])->name('nba.tasks.sendReminder');
+
+    // Task Assignment Routes
+    Route::post('/tasks/{task}/assign', [App\Http\Controllers\TaskCollaboratorController::class, 'assign'])->name('tasks.assign');
 
     // Task Reassignment Route
     Route::post('/tasks/{task}/reassign', [App\Http\Controllers\TaskCollaboratorController::class, 'reassign'])->name('tasks.reassign');

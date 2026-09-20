@@ -8,6 +8,9 @@ use App\Models\TaskDocument;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Models\TaskActivity;
+use Illuminate\Support\Facades\DB;
+
 
 class TaskDocumentController extends Controller
 {
@@ -49,6 +52,38 @@ class TaskDocumentController extends Controller
             ]);
 
             $uploaded[] = $doc;
+                    // Auto-update assignee progress to at least 75% and status to In Progress
+            $userId = auth()->id();
+            $pivotRow = DB::table('task_user')
+                ->where('task_id', $task->id)
+                ->where('user_id', $userId)
+                ->first();
+
+            $newProgress = $pivotRow ? max((int)$pivotRow->progress_percentage, 75) : 75;
+            $newStatus   = ($pivotRow && $pivotRow->status !== 'pending') ? $pivotRow->status : 'in_progress';
+
+            DB::table('task_user')
+                ->where('task_id', $task->id)
+                ->where('user_id', $userId)
+                ->update([
+                    'progress_percentage' => $newProgress,
+                    'status'              => $newStatus,
+                    'updated_at'          => now(),
+                ]);
+
+            if ($task->status === 'pending') {
+                $task->update(['status' => 'in_progress']);
+            }
+
+            TaskActivity::create([
+                'task_id'     => $task->id,
+                'user_id'     => $userId,
+                'action'      => 'progress_updated',
+                'description' => auth()->user()->name . ' progress updated to ' . $newProgress . '% (In Progress / Partially Done) upon document upload.',
+            ]);
+
+
+
         }
 
         if (!empty($uploaded)) {
@@ -97,6 +132,36 @@ class TaskDocumentController extends Controller
             'file_size'            => $file->getSize(),
             'file_type'            => $file->getClientMimeType(),
         ]);
+                // Auto-update assignee progress to at least 75%
+        $userId = auth()->id();
+        $pivotRow = DB::table('task_user')
+            ->where('task_id', $task->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        $newProgress = $pivotRow ? max((int)$pivotRow->progress_percentage, 75) : 75;
+        $newStatus   = ($pivotRow && $pivotRow->status !== 'pending') ? $pivotRow->status : 'in_progress';
+
+        DB::table('task_user')
+            ->where('task_id', $task->id)
+            ->where('user_id', $userId)
+            ->update([
+                'progress_percentage' => $newProgress,
+                'status'              => $newStatus,
+                'updated_at'          => now(),
+            ]);
+
+        if ($task->status === 'pending') {
+            $task->update(['status' => 'in_progress']);
+        }
+
+        TaskActivity::create([
+            'task_id'     => $task->id,
+            'user_id'     => $userId,
+            'action'      => 'progress_updated',
+            'description' => auth()->user()->name . ' progress updated to ' . $newProgress . '% (In Progress / Partially Done) upon document replacement.',
+        ]);
+
 
         // Centralized notification & activity logging
         $this->notificationService->notifyDocumentReuploaded($task, $newDoc);
@@ -114,10 +179,13 @@ class TaskDocumentController extends Controller
         $this->authorize('view', $task);
 
         if (!Storage::disk('public')->exists($document->file_path)) {
-            return back()->with('error', 'File not found.');
+            // Delete the corrupt 'ghost' database entry so it stops haunting the UI
+            $document->delete();
+            return back()->with('error', 'That file was corrupt/missing and has been removed from your list. Please re-upload it.');
         }
 
-        return Storage::disk('public')->download($document->file_path, $document->file_name);
+        // Use response() instead of download() so the file opens inline in a new tab
+        return Storage::disk('public')->response($document->file_path, $document->file_name);
     }
 
     /**
@@ -178,31 +246,5 @@ class TaskDocumentController extends Controller
                 'download_url'  => route('faculty.tasks.documents.download', [$task, $v]),
             ]),
         ]);
-    }
-
-    /**
-     * Review a document (approve / request changes / reject).
-     */
-    public function review(Request $request, Task $task, TaskDocument $document)
-    {
-        $this->authorize('reviewDocument', $task);
-
-        $validated = $request->validate([
-            'review_status'   => 'required|in:approved,changes_requested,rejected',
-            'review_comments' => 'nullable|string|max:1000',
-        ]);
-
-        $document->update([
-            'review_status'   => $validated['review_status'],
-            'review_comments' => $validated['review_comments'] ?? null,
-            'reviewed_by'     => auth()->id(),
-            'reviewed_at'     => now(),
-        ]);
-
-        $this->notificationService->notifyDocumentReviewed($task, $document, $validated['review_status'], $validated['review_comments'] ?? null);
-        $this->notificationService->updateAutomaticTaskProgress($task, 'document review');
-
-        return redirect()->route('faculty.tasks.show', $task)
-            ->with('success', 'Document marked as ' . str_replace('_', ' ', $validated['review_status']) . '.');
     }
 }

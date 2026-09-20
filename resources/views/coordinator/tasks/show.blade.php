@@ -264,7 +264,7 @@
                                     <div class="small fw-semibold text-dark mb-2">Attached Documents:</div>
                                     <div class="d-flex flex-wrap gap-2">
                                         @foreach($assigneeDocs as $doc)
-                                            <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center" style="font-size: 0.75rem; border-radius: 4px;">
+                                            <a href="{{ route('coordinator.tasks.documents.download', [$task, $doc]) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center" style="font-size: 0.75rem; border-radius: 4px;">
                                                 <i class="bi bi-file-earmark-text me-1 text-primary"></i> <span class="text-truncate" style="max-width: 150px;">{{ $doc->file_name }}</span>
                                             </a>
                                         @endforeach
@@ -327,7 +327,7 @@
                             <div class="text-dark" style="font-size:0.85rem;">{{ $comment->comment }}</div>
                             @if($comment->attachment_path)
                                 <div class="mt-2">
-                                    <a href="{{ Storage::url($comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                    <a href="{{ asset('storage/' . $comment->attachment_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
                                         <i class="bi bi-paperclip text-primary"></i> {{ $comment->attachment_name ?? 'Attachment' }}
                                     </a>
                                 </div>
@@ -363,6 +363,36 @@
             setTimeout(() => toast.remove(), 400);
         }
     }, 5000);
+</script>
+@endif
+
+@if($errors->any())
+<div id="validationToastPopup" class="position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg rounded-3 p-3 bg-white border border-warning d-flex align-items-center gap-3"
+     style="z-index: 1090; min-width: 320px; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;">
+    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div class="fw-bold text-dark small">Validation Failed</div>
+        <div class="text-secondary small" style="font-size: 0.83rem; line-height: 1.35;">
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    <button type="button" class="btn-close ms-2 small" onclick="document.getElementById('validationToastPopup').remove()"></button>
+</div>
+<script>
+    setTimeout(function() {
+        const toast = document.getElementById('validationToastPopup');
+        if (toast) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => toast.remove(), 400);
+        }
+    }, 6000);
 </script>
 @endif
 
@@ -633,6 +663,15 @@ function confirmDeleteWorkItem(event, title) {
         </h6>
     </div>
     <div class="card-body p-4">
+        @if ($errors->any())
+            <div class="alert alert-danger mb-3">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <form action="{{ route('coordinator.tasks.documents.store', $task) }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="mb-3">
@@ -734,7 +773,7 @@ function confirmDeleteWorkItem(event, title) {
 
                         <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-3">
                             {{-- View document in new tab (primary action) --}}
-                            <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="View Document">
+                            <a href="{{ route('coordinator.tasks.documents.download', [$task, $doc]) }}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-1" style="font-size: 0.7rem; border-color: var(--navy); color: var(--navy);" title="Download Document">
                                 <i class="bi bi-eye"></i>
                             </a>
                             {{-- Version History --}}
