@@ -173,6 +173,84 @@
             </div>
         </div>
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- OVERDUE TASKS ALERT TRACKER                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="card bg-white shadow-sm border-0 mt-4" style="border-radius: var(--radius, 8px); border-top: 4px solid #dc3545 !important;">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h6 class="m-0 fw-bold text-danger">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i>Overdue Tasks Alert
+            </h6>
+            <span class="badge bg-danger">{{ $overdueTasksList->count() }} Pending</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <tr>
+                            <th class="ps-3 py-3">Task Title</th>
+                            <th class="py-3">Deadline Ended On</th>
+                            <th class="py-3">Failed By (Pending)</th>
+                            <th class="pe-3 py-3 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($overdueTasksList as $task)
+                        <tr style="cursor: pointer;" onclick="window.location='{{ route('hod.tasks.show', $task) }}'">
+                            <td class="ps-3">
+                                <a href="{{ route('hod.tasks.show', $task) }}" class="text-decoration-none fw-bold text-dark text-truncate d-inline-block" style="max-width: 250px;" title="{{ $task->title }}">
+                                    {{ $task->title }}
+                                </a>
+                                @if($task->owner_role === 'faculty')
+                                    <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.6rem;">By Faculty</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-danger" style="font-size: 0.8rem;">
+                                    <i class="bi bi-clock-history me-1"></i>{{ $task->deadline->format('M d, Y h:i A') }}
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.7rem;">
+                                    {{ $task->deadline->diffForHumans() }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @php
+                                        // Get assignees who have NOT completed the task
+                                        $failedAssignees = $task->assignees->filter(function($assignee) {
+                                            return $assignee->pivot->status !== 'completed';
+                                        });
+                                    @endphp
+                                    @forelse($failedAssignees as $assignee)
+                                        <div class="d-flex align-items-center gap-1 bg-light border rounded-pill px-2 py-1" style="font-size: 0.75rem;" title="Status: {{ ucfirst(str_replace('_', ' ', $assignee->pivot->status)) }}">
+                                            <img src="{{ $assignee->profile_photo_url }}" class="rounded-circle object-fit-cover" style="width: 20px; height: 20px;">
+                                            <span class="text-dark fw-medium">{{ $assignee->name }}</span>
+                                        </div>
+                                    @empty
+                                        <span class="text-muted small">No pending assignees</span>
+                                    @endforelse
+                                </div>
+                            </td>
+                            <td class="pe-3 text-end">
+                                <a href="{{ route('hod.tasks.show', $task) }}" class="btn btn-sm btn-outline-danger fw-medium px-2 py-1" style="font-size: 0.75rem;" onclick="event.stopPropagation();">
+                                    Review
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                <i class="bi bi-emoji-smile fs-3 d-block mb-2 text-success"></i>
+                                No tasks are currently overdue.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
     <!-- Upcoming Meetings & Documents Awaiting Review Sidebar Widget (22-25% on XL screens) -->

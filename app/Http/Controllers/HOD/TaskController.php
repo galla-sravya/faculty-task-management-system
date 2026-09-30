@@ -21,9 +21,16 @@ class TaskController extends Controller
 
     public function index(Request $request)
     {
+        $tab = $request->get('tab', 'hod'); // 'hod' or 'faculty'
+
         $query = Task::where('department_id', auth()->user()->department_id)
-            ->where('owner_role', 'hod')
-            ->with(['assignees', 'meeting']);
+            ->with(['assignees', 'meeting', 'creator']);
+
+        if ($tab === 'faculty') {
+            $query->where('owner_role', 'faculty');
+        } else {
+            $query->where('owner_role', 'hod');
+        }
 
         if ($request->filled('status')) {
             if ($request->status === 'overdue') {
@@ -38,9 +45,17 @@ class TaskController extends Controller
             $query->where('priority', $request->priority);
         }
 
-        $tasks = $query->latest()->paginate(10);
+        $tasks = $query->latest()->paginate(10)->withQueryString();
         
-        return view('hod.tasks.index', compact('tasks'));
+        $hodCount = Task::where('department_id', auth()->user()->department_id)
+            ->where('owner_role', 'hod')
+            ->count();
+            
+        $facultyCount = Task::where('department_id', auth()->user()->department_id)
+            ->where('owner_role', 'faculty')
+            ->count();
+        
+        return view('hod.tasks.index', compact('tasks', 'tab', 'hodCount', 'facultyCount'));
     }
 
     public function create()

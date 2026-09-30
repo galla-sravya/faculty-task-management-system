@@ -97,11 +97,18 @@ class DashboardController extends Controller
             ->take(6)
             ->get();
 
+        // All pending overdue tasks in the department
+        $overdueTasksList = Task::where('department_id', $departmentId)
+            ->overdue()
+            ->with(['assignees'])
+            ->orderBy('deadline', 'asc')
+            ->get();
+
         return view('hod.dashboard', compact(
             'totalTasks', 'completedTasks', 'inProgressTasks', 'overdueTasks',
             'completionRate', 'recentTasks', 'upcomingDeadlines', 'upcomingMeetings',
-            'faculties', 'categories', 'documentsAwaitingReview',
-            'recentlyCompletedTasks', 'recentActivities'
+            'faculties', 'categories', 'documentsAwaitingReview', 'recentlyCompletedTasks',
+            'recentActivities', 'overdueTasksList'
         ));
     }
 

@@ -1,4 +1,4 @@
-<!-- ═══════════════════════════════════════════════════════════ -->
+<<!-- ═══════════════════════════════════════════════════════════ -->
 <!-- PSG iTech — Collapsible Sidebar (ChatGPT / Notion style) -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 @auth
@@ -107,6 +107,9 @@
             </a>
             <a href="{{ route('faculty.tasks.index') }}" class="sidebar-link {{ request()->routeIs('faculty.tasks.*') ? 'active' : '' }}" title="My Tasks">
                 <i class="bi bi-list-task"></i><span class="sidebar-label">My Tasks</span>
+            </a>
+            <a href="{{ route('faculty.tasks.archived') }}" class="sidebar-link {{ request()->routeIs('faculty.tasks.archived') ? 'active' : '' }}" title="Archived Tasks">
+                <i class="bi bi-archive"></i><span class="sidebar-label">Archived Tasks</span>
             </a>
             <a href="{{ route('faculty.meetings.index') }}" class="sidebar-link {{ request()->routeIs('faculty.meetings.*') ? 'active' : '' }}" title="Meetings">
                 <i class="bi bi-calendar-event"></i><span class="sidebar-label">Meetings</span>

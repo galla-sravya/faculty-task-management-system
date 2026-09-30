@@ -13,6 +13,20 @@
     </div>
 </div>
 
+<!-- View Filter Tabs -->
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{{ route('hod.tasks.index', ['tab' => 'hod']) }}"
+       class="btn btn-sm {{ $tab === 'hod' ? 'btn-navy text-white fw-bold shadow-sm' : 'btn-light text-secondary border' }}"
+       style="{{ $tab === 'hod' ? 'background-color: var(--navy);' : '' }}">
+        <i class="bi bi-person-badge me-1"></i> My Tasks <span class="badge {{ $tab === 'hod' ? 'bg-light text-navy' : 'bg-secondary' }} ms-1">{{ $hodCount }}</span>
+    </a>
+    <a href="{{ route('hod.tasks.index', ['tab' => 'faculty']) }}"
+       class="btn btn-sm {{ $tab === 'faculty' ? 'btn-navy text-white fw-bold shadow-sm' : 'btn-light text-secondary border' }}"
+       style="{{ $tab === 'faculty' ? 'background-color: var(--navy);' : '' }}">
+        <i class="bi bi-people me-1"></i> Faculty Tasks <span class="badge {{ $tab === 'faculty' ? 'bg-light text-navy' : 'bg-secondary' }} ms-1">{{ $facultyCount }}</span>
+    </a>
+</div>
+
 <div class="task-table-wrapper">
     <x-task-table-filters />
     <div class="card bg-white shadow-sm border-0" style="border-radius: var(--radius, 8px);">

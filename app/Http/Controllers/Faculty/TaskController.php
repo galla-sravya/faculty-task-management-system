@@ -18,7 +18,7 @@ class TaskController extends Controller
         $this->notificationService = $notificationService;
     }
 
-        public function index(Request $request)
+    public function index(Request $request)
     {
         $user = auth()->user();
         
@@ -92,7 +92,6 @@ class TaskController extends Controller
             'createdCount'
         ));
     }
-
 
     public function create()
     {
@@ -201,27 +200,6 @@ class TaskController extends Controller
             ->orderBy('version', 'desc')
             ->first();
         
-                    // If documents exist and progress is below 75%, automatically update to 75% and in_progress
-        $hasDocs = \App\Models\TaskDocument::where('task_id', $task->id)->where('user_id', auth()->id())->exists();
-        if ($hasDocs && $pivot->progress_percentage < 75 && $pivot->status !== 'completed') {
-            $newStatus = ($pivot->status === 'pending') ? 'in_progress' : $pivot->status;
-            \Illuminate\Support\Facades\DB::table('task_user')
-                ->where('task_id', $task->id)
-                ->where('user_id', auth()->id())
-                ->update([
-                    'progress_percentage' => 75,
-                    'status'              => $newStatus,
-                    'updated_at'          => now(),
-                ]);
-
-            $pivot->progress_percentage = 75;
-            $pivot->status = $newStatus;
-
-            if ($task->status === 'pending') {
-                $task->update(['status' => 'in_progress']);
-            }
-        }
-
         return view('faculty.tasks.show', compact('task', 'pivot', 'allTaskDocuments', 'latestDocuments', 'groupedDocuments', 'myLatestDoc'));
     }
 
@@ -375,22 +353,13 @@ class TaskController extends Controller
             }
         }
 
-        // Auto-update to 75% ONLY when a file is uploaded (allows manual slider updates anytime)
-        if ($uploadedDocsCount > 0 && $progress < 75) {
-            $progress = 75;
-            $status   = 'checklist_completed';
-        }
-        // Update current user's pivot record directly in database
-        \Illuminate\Support\Facades\DB::table('task_user')
-            ->where('task_id', $task->id)
-            ->where('user_id', auth()->id())
-            ->update([
-                'progress_percentage' => $progress,
-                'status'              => $status,
-                'remarks'             => $validated['remarks'] ?? null,
-                'completed_at'        => $progress === 100 ? now() : null,
-                'updated_at'          => now(),
-            ]);
+        // Update current user's pivot record
+        auth()->user()->assignedTasks()->updateExistingPivot($task->id, [
+            'progress_percentage' => $progress,
+            'status'              => $status,
+            'remarks'             => $validated['remarks'] ?? null,
+            'completed_at'        => $progress === 100 ? now() : null,
+        ]);
 
         // Sync main task status
         if ($progress === 100 && $task->status !== 'completed') {
@@ -467,5 +436,62 @@ class TaskController extends Controller
         }
 
         return redirect()->route('faculty.tasks.show', $task)->with('success', $successMsg);
+    }
+
+    public function destroy($id)
+    {
+        $task = \App\Models\Task::withTrashed()->findOrFail($id);
+
+        if ($task->trashed()) {
+            return redirect()->route('faculty.tasks.index')->with('success', 'Task is already archived.');
+        }
+
+        $this->authorize('delete', $task);
+
+        $this->notificationService->notifyTaskArchived($task);
+        $task->delete();
+
+        return redirect()->route('faculty.tasks.index')->with('success', 'Task archived successfully.');
+    }
+
+    public function archived(Request $request)
+    {
+        $user = auth()->user();
+
+        $query = \App\Models\Task::onlyTrashed()
+            ->where('created_by', $user->id)
+            ->with(['assignees', 'creator']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhereHas('assignees', fn ($aq) => $aq->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        $archivedTasks = $query->latest('deleted_at')->paginate(10)->withQueryString();
+
+        return view('faculty.tasks.archived', compact('archivedTasks'));
+    }
+
+    public function restore($id)
+    {
+        $task = \App\Models\Task::onlyTrashed()->findOrFail($id);
+        $this->authorize('restore', $task);
+
+        $task->restore();
+        $this->notificationService->notifyTaskRestored($task);
+
+        return redirect()->route('faculty.tasks.show', $task)->with('success', 'Task restored successfully.');
     }
 }

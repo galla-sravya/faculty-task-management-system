@@ -27,7 +27,7 @@ class TaskPolicy
         }
         
         if ($user->isCoordinator()) {
-            return $task->owner_role === $user->coordinatorType->slug && $user->department_id === $task->department_id;
+            return $task->owner_role === $user->coordinatorType?->slug && $user->department_id === $task->department_id;
         }
 
         if ($task->created_by === $user->id) {
@@ -57,6 +57,10 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): bool
     {
+        if ($task->created_by === $user->id) {
+            return true;
+        }
+
         if ($user->isHod()) {
             return $user->department_id === $task->department_id;
         }
@@ -70,6 +74,10 @@ class TaskPolicy
 
     public function restore(User $user, Task $task): bool
     {
+        if ($task->created_by === $user->id) {
+            return true;
+        }
+
         if ($user->isHod()) {
             return $user->department_id === $task->department_id;
         }
@@ -85,6 +93,10 @@ class TaskPolicy
     {
         if ($task->overall_progress > 0 || $task->documents()->exists() || $task->activities()->count() > 1 || $task->comments()->exists()) {
             return false;
+        }
+
+        if ($task->created_by === $user->id) {
+            return true;
         }
 
         if ($user->isHod()) {

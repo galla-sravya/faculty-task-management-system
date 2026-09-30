@@ -58,6 +58,11 @@
                     <button class="btn btn-sm btn-outline-warning text-dark fw-medium d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#sendReminderModal" style="background-color: #fff3cd; border-color: #ffeeba;">
                         <i class="bi bi-bell-fill text-warning"></i> Send Reminder Mail
                     </button>
+                    @if($task->created_by === auth()->id())
+                    <button class="btn btn-sm btn-outline-warning fw-medium text-dark d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#archiveTaskModal">
+                        <i class="bi bi-archive"></i> Archive Task
+                    </button>
+                    @endif
             @endif
         @endif
 
@@ -76,6 +81,23 @@
         </a>
     </div>
 </div>
+
+@if($task->trashed())
+<div class="alert alert-warning d-flex align-items-center justify-content-between shadow-sm border-0 mb-4" role="alert">
+    <div>
+        <i class="bi bi-archive me-2 fs-5"></i>
+        <strong>This task is currently archived.</strong> All progress, documents, comments, collaborators and history remain preserved.
+    </div>
+    @can('restore', $task)
+    <form action="{{ route('faculty.tasks.restore', $task->id) }}" method="POST" class="d-inline">
+        @csrf
+        <button type="submit" class="btn btn-sm btn-success fw-medium">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Restore Task Now
+        </button>
+    </form>
+    @endcan
+</div>
+@endif
 
 <!-- Assigned Faculty Photo Avatars Row -->
 <div class="card bg-white shadow-sm border-0 mb-4" style="border-radius: var(--radius, 8px);">
@@ -1458,4 +1480,35 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 </script>
+</script>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal fade" id="archiveTaskModal" tabindex="-1" aria-labelledby="archiveTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius, 8px);">
+            <div class="modal-header bg-light border-bottom-0 py-3">
+                <h5 class="modal-title fw-bold text-navy" id="archiveTaskModalLabel">
+                    <i class="bi bi-archive me-2 text-warning"></i>Archive Task?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <i class="bi bi-archive text-warning mb-3 d-block" style="font-size: 3rem;"></i>
+                <p class="mb-0 text-dark fw-medium">Are you sure you want to archive <strong>"{{ $task->title }}"</strong>?</p>
+                <p class="text-muted small mt-2 mb-0">Archived tasks are hidden from active views but remain accessible via the Archived Tasks list. You can restore them later.</p>
+            </div>
+            <div class="modal-footer border-top-0 pt-0 pb-4 px-4 d-flex justify-content-center gap-2">
+                <form action="{{ route('faculty.tasks.destroy', $task) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="button" class="btn btn-light border px-4 fw-medium" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold text-dark shadow-sm">
+                        <i class="bi bi-archive me-1"></i>Archive Task
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection

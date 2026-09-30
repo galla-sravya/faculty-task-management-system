@@ -172,6 +172,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reports', [App\Http\Controllers\HOD\ReportController::class, 'index'])->name('reports.index');
         Route::get('reports/export/csv', [App\Http\Controllers\HOD\ReportController::class, 'exportCsv'])->name('reports.export');
         Route::get('reports/{task}', [App\Http\Controllers\HOD\ReportController::class, 'show'])->name('reports.show');
+        Route::post('tasks/{task}/documents', [App\Http\Controllers\HOD\TaskDocumentController::class, 'store'])->name('tasks.documents.store')->withTrashed();
+        Route::post('tasks/{task}/documents/{document}/replace', [App\Http\Controllers\HOD\TaskDocumentController::class, 'replace'])->name('tasks.documents.replace')->withTrashed();
 
         // Document review routes
         Route::post('tasks/{task}/documents/{document}/review', [App\Http\Controllers\HOD\TaskDocumentController::class, 'review'])->name('tasks.documents.review')->withTrashed();
